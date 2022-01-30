@@ -2,52 +2,54 @@ package net.smart.rfid.tunnel.model;
 
 public class InfoPackage {
 
-	
-	private int sku;
+	private String sku;
 
-	private int pack;
-	
-	private int section;
-	
-	private int brand;
+	private Integer pack;
+
+	private Integer section;
+
+	private Integer brand;
 
 	public InfoPackage() {
 	}
 
-	public int getSku() {
-		return sku;
-	}
-
-	public void setSku(int sku) {
+	public InfoPackage(String sku, Integer pack, Integer brand, Integer section) {
 		this.sku = sku;
-	}
-
-	public int getPack() {
-		return pack;
-	}
-
-	public void setPack(int pack) {
 		this.pack = pack;
-	}
-
-	public int getSection() {
-		return section;
-	}
-
-	public void setSection(int section) {
+		this.brand = brand;
 		this.section = section;
 	}
 
-	public int getBrand() {
+	public String getSku() {
+		return sku;
+	}
+
+	public void setSku(String sku) {
+		this.sku = sku;
+	}
+
+	public Integer getPack() {
+		return pack;
+	}
+
+	public void setPack(Integer pack) {
+		this.pack = pack;
+	}
+
+	public Integer getSection() {
+		return section;
+	}
+
+	public void setSection(Integer section) {
+		this.section = section;
+	}
+
+	public Integer getBrand() {
 		return brand;
 	}
 
-	public void setBrand(int brand) {
+	public void setBrand(Integer brand) {
 		this.brand = brand;
 	}
-
-	
-
-	
 
 }

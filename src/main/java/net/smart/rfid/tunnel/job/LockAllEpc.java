@@ -31,7 +31,6 @@ import com.impinj.octane.TagWriteOp;
 import com.impinj.octane.TagWriteOpResult;
 import com.impinj.octane.TargetTag;
 import com.impinj.octane.WordPointers;
-import com.impinj.octane.WriteResultStatus;
 
 import net.smart.rfid.tunnel.db.entity.TagOperation;
 import net.smart.rfid.tunnel.db.services.TunnelService;
@@ -43,8 +42,8 @@ import net.smart.rfid.tunnel.util.PropertiesUtil;
  * 
  */
 
-public class WriteEpc implements TagReportListener, TagOpCompleteListener {
-	Logger logger = Logger.getLogger(WriteEpc.class);
+public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
+	Logger logger = Logger.getLogger(LockAllEpc.class);
 
 	static short WRITE_EPC_OP_ID = 111;
 	static short WRITE_PC_OP_ID = 222;
@@ -60,10 +59,10 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 	private ImpinjReader reader;
 
 	private TunnelService tunnelService;
-	private InfoPackage infoPackage;
+	private String password;
 
-	public WriteEpc(TunnelService tunnelService, InfoPackage infoPackage) {
-		this.infoPackage = infoPackage;
+	public LockAllEpc(TunnelService tunnelService, String password) {
+		this.password = password;
 		this.tunnelService = tunnelService;
 	}
 
@@ -144,67 +143,20 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 			String appo = "";// String.format("%04d", index);
 			logger.info("onTagReported: EPC: " + t.getEpc().toHexString());
 
-			if (t.getAntennaPortNumber() == 1 && t.isPcBitsPresent()) {
+			if (t.isPcBitsPresent()) {
 				short pc = t.getPcBits();
 				String currentEpc = t.getEpc().toHexString();
-				String newEpc = infoPackage.getPack() + currentEpc.substring(5, currentEpc.length());
 				try {
-					if (!this.tunnelService.isEpcWrited(currentEpc, newEpc)) {
-						// Recupero la password dall'epc
-						String password = "abcd1234";
 
-						TagOpSequence seq3 = new TagOpSequence();
-						seq3.setOps(new ArrayList<TagOp>());
-						seq3.setExecutionCount((short) 1); // forever
-						seq3.setState(SequenceState.Active);
-						seq3.setId(opSpecID++);
-						seq3 = unlockTag(seq3, currentEpc, password);
-						reader.addOpSequence(seq3);
-						//
-						TagOpSequence seq4 = new TagOpSequence();
-
-						seq4.setOps(new ArrayList<TagOp>());
-						seq4.setExecutionCount((short) 1); // forever
-						seq4.setState(SequenceState.Active);
-						seq4.setId(opSpecID++);
-						seq4 = programEpc(seq4, currentEpc, pc, newEpc);
-						reader.addOpSequence(seq4);
-
-						// Salvo nel db i tag con wited e lock a false
-						TagOperation tagOp = new TagOperation();
-						tagOp.setEpcOld(currentEpc);
-						tagOp.setEpcNew(newEpc);
-						tagOp.setLocked(false);
-						tagOp.setWrited(false);
-						this.tunnelService.save(tagOp);
-					}
 					//
-				} catch (Exception e) {
-					logger.error("onTagReported: Failed To program EPC: " + e.toString());
-				}
-			}
+					TagOpSequence seq1 = new TagOpSequence();
+					seq1.setOps(new ArrayList<TagOp>());
+					seq1.setExecutionCount((short) 0); // forever
+					seq1.setState(SequenceState.Active);
+					seq1.setId(opSpecID++);
+					seq1 = writeAccessPasswordAndLockEpc(seq1, currentEpc, this.password);
+					reader.addOpSequence(seq1);
 
-			if (t.getAntennaPortNumber() == 2 && t.isPcBitsPresent()) {
-				short pc = t.getPcBits();
-				String currentEpc = t.getEpc().toHexString();
-				try {
-					
-					TagOperation tagOp = this.tunnelService.isEpcWritedAndNotLocked(currentEpc);
-					if (tagOp != null) {
-						//
-						String password = "abcd1234";
-
-						TagOpSequence seq2 = new TagOpSequence();
-						seq2.setOps(new ArrayList<TagOp>());
-						seq2.setExecutionCount((short) 1); // forever
-						seq2.setState(SequenceState.Active);
-						seq2.setId(opSpecID++);
-						seq2 = lockTag(seq2, currentEpc, password);
-						reader.addOpSequence(seq2);
-						//
-						tagOp.setLocked(true);
-						this.tunnelService.save(tagOp);
-					}
 					//
 				} catch (Exception e) {
 					logger.error("onTagReported: Failed To program EPC: " + e.toString());
@@ -222,22 +174,8 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 			if (t instanceof TagWriteOpResult) {
 				TagWriteOpResult tr = (TagWriteOpResult) t;
 				logger.info("onTagOpComplete: Write OP seq id " + tr.getSequenceId());
-				//
 				if (tr.getOpId() == WRITE_EPC_OP_ID) {
-					// Se il tag è stato scritto con successo allora faccio update nel db in modo da non lavorare piu
-					// questo epc
 					logger.info("onTagOpComplete:  Write EPC Complete: ");
-					if (tr.getResult() == WriteResultStatus.Success) {
-						try {
-							List<TagOperation> tagOpList = this.tunnelService.findByEpcOld(tr.getTag().getEpc().toHexString());
-							TagOperation tagOp = tagOpList.get(0);
-							tagOp.setWrited(true);
-							this.tunnelService.save(tagOp);
-						} catch (Exception e) {
-							logger.error(e);
-						}
-
-					}
 				}
 				if (tr.getOpId() == WRITE_PC_OP_ID) {
 					logger.info("onTagOpComplete:  Write PC Complete: ");
@@ -274,7 +212,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 		}
 	}
 
-	private TagOpSequence writeAccessPassword(TagOpSequence seq, String currentEpc, String password) throws Exception {
+	private TagOpSequence writeAccessPasswordAndLockEpc(TagOpSequence seq, String currentEpc, String password) throws Exception {
 
 		logger.info("writeAccessPassword: Write Access Password  and lock it");
 
@@ -305,101 +243,6 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 
 		return seq;
 
-	}
-
-	private TagOpSequence lockTag(TagOpSequence seq, String currentEpc, String password) throws Exception {
-		logger.info("lockTag:");
-		logger.info("lockTag: EPC " + currentEpc);
-		//
-		// Effettuo questa operazione solo alla currentTag
-		seq.setTargetTag(new TargetTag());
-		seq.getTargetTag().setBitPointer(BitPointers.Epc);
-		seq.getTargetTag().setMemoryBank(MemoryBank.Epc);
-		seq.getTargetTag().setData(currentEpc);
-		TagLockOp lockOp = new TagLockOp();
-		// lock the access password so it can't be changed
-		// since we have a password set, we have to use it
-		lockOp.setAccessPassword(TagData.fromHexString(password));
-		// lockOp.setAccessPasswordLockType(TagLockState.Lock);
-		lockOp.Id = LOCK_USER_OP_ID;
-		// uncomment to lock user memory so it can't be changed
-		lockOp.setEpcLockType(TagLockState.Lock);
-
-		// add to the list
-		seq.getOps().add(lockOp);
-		//
-		return seq;
-	}
-
-	private TagOpSequence unlockTag(TagOpSequence seq, String currentEpc, String password) throws Exception {
-		//
-		logger.info("unlockTag:");
-		logger.info("unlockTag: EPC " + currentEpc);
-		// Effettuo questa operazione solo alla currentTag
-		seq.setTargetTag(new TargetTag());
-		seq.getTargetTag().setBitPointer(BitPointers.Epc);
-		seq.getTargetTag().setMemoryBank(MemoryBank.Epc);
-		seq.getTargetTag().setData(currentEpc);
-		//
-		TagLockOp lockOp = new TagLockOp();
-		// lock the access password so it can't be changed
-		// since we have a password set, we have to use it
-		lockOp.setAccessPassword(TagData.fromHexString(password));
-		// lockOp.setAccessPasswordLockType(TagLockState.Unlock);
-		// uncomment to lock user memory so it can't be changed
-		lockOp.Id = UNLOCK_USER_OP_ID;
-		lockOp.setEpcLockType(TagLockState.Unlock);
-		// add to the list
-		seq.getOps().add(lockOp);
-		//
-		return seq;
-	}
-
-	private TagOpSequence programEpc(TagOpSequence seq, String currentEpc, short currentPC, String newEpc) throws Exception {
-		if ((currentEpc.length() % 4 != 0) || (newEpc.length() % 4 != 0)) {
-			throw new Exception("EPCs must be a multiple of 16- bits: " + currentEpc + "  " + newEpc);
-		}
-
-		logger.info("Programming Tag ");
-		logger.info("EPC " + currentEpc + " to " + newEpc);
-
-		//
-		seq.setTargetTag(new TargetTag());
-		seq.getTargetTag().setBitPointer(BitPointers.Epc);
-		seq.getTargetTag().setMemoryBank(MemoryBank.Epc);
-		seq.getTargetTag().setData(currentEpc);
-
-		//
-		TagWriteOp epcWrite = new TagWriteOp();
-		epcWrite.Id = WRITE_EPC_OP_ID;
-		epcWrite.setMemoryBank(MemoryBank.Epc);
-		epcWrite.setWordPointer(WordPointers.Epc);
-		epcWrite.setData(TagData.fromHexString(newEpc));
-
-		// add to the list
-		seq.getOps().add(epcWrite);
-
-		// have to program the PC bits if these are not the same
-		if (currentEpc.length() != newEpc.length()) {
-			// keep other PC bits the same.
-			String currentPCString = PcBits.toHexString(currentPC);
-
-			short newPC = PcBits.AdjustPcBits(currentPC, (short) (newEpc.length() / 4));
-			String newPCString = PcBits.toHexString(newPC);
-
-			logger.info("PC bits to establish new length: " + newPCString + " " + currentPCString);
-
-			TagWriteOp pcWrite = new TagWriteOp();
-			pcWrite.Id = WRITE_PC_OP_ID;
-			pcWrite.setMemoryBank(MemoryBank.Epc);
-			pcWrite.setWordPointer(WordPointers.PcBits);
-
-			pcWrite.setData(TagData.fromHexString(newPCString));
-			seq.getOps().add(pcWrite);
-		}
-
-		// outstanding++;
-		return seq;
 	}
 
 }

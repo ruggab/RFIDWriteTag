@@ -24,6 +24,8 @@ public class TagOperation {
 
 	private String epcNew;
 
+	private Boolean writed;
+
 	private Boolean locked;
 
 	public TagOperation() {
@@ -59,6 +61,14 @@ public class TagOperation {
 
 	public void setLocked(Boolean locked) {
 		this.locked = locked;
+	}
+
+	public Boolean getWrited() {
+		return writed;
+	}
+
+	public void setWrited(Boolean writed) {
+		this.writed = writed;
 	}
 
 }
