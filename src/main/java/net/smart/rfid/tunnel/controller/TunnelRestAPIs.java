@@ -3,11 +3,13 @@ package net.smart.rfid.tunnel.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import net.smart.rfid.tunnel.db.services.TunnelService;
 import net.smart.rfid.tunnel.exception.ResourceNotFoundException;
+import net.smart.rfid.tunnel.model.InfoPackage;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -18,10 +20,10 @@ public class TunnelRestAPIs {
 	private TunnelService tunnelService;
 
 	@PostMapping("/startTunnel")
-	public void start() throws Exception, ResourceNotFoundException {
+	public void start(@RequestBody InfoPackage infoPackage) throws Exception, ResourceNotFoundException {
 		try {
 
-			tunnelService.start();
+			tunnelService.start(infoPackage);
 
 		} catch (Exception e) {
 			throw e;
