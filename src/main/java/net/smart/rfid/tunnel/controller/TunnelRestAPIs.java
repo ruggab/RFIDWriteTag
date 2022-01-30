@@ -24,10 +24,10 @@ public class TunnelRestAPIs {
 	private TunnelService tunnelService;
 
 	@PostMapping("/startEpcWriteAndLockIt")
-	public void start(@RequestParam(value = "sku", required = true) String sku, 
-			@RequestParam(value = "pack", required = true) @Min(5) @Max(5) Integer pack, 
-			@RequestParam(value = "brand", required = true) @Min(1) @Max(32) Integer brand, 
-			@RequestParam(value = "section", required = true) @Min(0) @Max(3) Integer section) throws Exception, ResourceNotFoundException {
+	public void start(@RequestParam(value = "sku") String sku, 
+			@RequestParam(value = "pack") @Min(10000) @Max(99999) Integer pack, 
+			@RequestParam(value = "brand") @Min(1) @Max(32) Integer brand, 
+			@RequestParam(value = "section") @Min(0) @Max(3) Integer section) throws Exception, ResourceNotFoundException {
 		try {
 
 			tunnelService.startEpcWriteAndLockIt(sku, pack, brand, section);

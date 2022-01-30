@@ -149,7 +149,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 				String currentEpc = t.getEpc().toHexString();
 				String newEpc = infoPackage.getPack() + currentEpc.substring(5, currentEpc.length());
 				try {
-					if (!this.tunnelService.isEpcWrited(currentEpc, newEpc)) {
+					if (!this.tunnelService.isEpcWorked(currentEpc)) {
 						// Recupero la password dall'epc
 						String password = "abcd1234";
 

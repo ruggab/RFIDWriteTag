@@ -78,9 +78,9 @@ public class TunnelService {
 		return tagOp;
 	}
 	
-	public boolean isEpcWrited(String epcOld, String epcNew) throws Exception {
+	public boolean isEpcWrited(String epc) throws Exception {
 		boolean ret = false;
-		List<TagOperation> tagOpList = tagOperationRepository.findByEpcOldAndEpcNew(epcOld, epcNew);
+		List<TagOperation> tagOpList = tagOperationRepository.findByEpcNew(epc);
 		if (tagOpList.size() != 0) {
 			ret = tagOpList.get(0).getWrited().booleanValue();
 		}
@@ -96,6 +96,18 @@ public class TunnelService {
 	public List<TagOperation> findByEpcOld(String epcOld) throws Exception {
 		List<TagOperation> tagOpList = tagOperationRepository.findByEpcOld(epcOld);
 		return tagOpList;
+	}
+	
+	public boolean isEpcWorked(String epc) throws Exception {
+		long cont = 0;
+		boolean ret = false;
+		long contNew = tagOperationRepository.countByEpcNew(epc);
+		long contOld = tagOperationRepository.countByEpcOld(epc);
+		cont = contNew + contOld;
+		if (cont > 0) {
+			ret = true;
+		}
+		return ret;
 	}
 
 }

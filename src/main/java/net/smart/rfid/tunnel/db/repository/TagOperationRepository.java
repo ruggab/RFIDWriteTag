@@ -16,7 +16,6 @@ public interface TagOperationRepository extends JpaRepository<TagOperation, Long
 	
 	List<TagOperation> findByEpcOldAndEpcNew(String epcOld, String epcNew);
 	
-	List<TagOperation> findByEpcEpcNew(String epcNew);
 	
 	long countByEpcNew(String name);
 	
