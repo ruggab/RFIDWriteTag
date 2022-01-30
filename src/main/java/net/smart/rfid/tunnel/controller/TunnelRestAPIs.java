@@ -11,7 +11,7 @@ import net.smart.rfid.tunnel.db.services.TunnelService;
 import net.smart.rfid.tunnel.exception.ResourceNotFoundException;
 import net.smart.rfid.tunnel.model.InfoPackage;
 
-@RestController
+@RestController 
 @RequestMapping("/api/v1")
 @CrossOrigin(origins = "http://localhost:4200")
 public class TunnelRestAPIs {

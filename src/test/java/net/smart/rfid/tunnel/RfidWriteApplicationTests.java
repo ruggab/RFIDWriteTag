@@ -4,8 +4,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import net.smart.rfid.tunnel.job.WriteEpc;
-
 @SpringBootTest
 class RfidWriteApplicationTests {
 
@@ -14,8 +12,8 @@ class RfidWriteApplicationTests {
 	void contextLoads() throws Exception {
 		
 		//
-		WriteEpc epcWriter = new WriteEpc();
-		epcWriter.run();
+		//WriteEpc epcWriter = new WriteEpc();
+		//epcWriter.run();
 
 	}
 
