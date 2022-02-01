@@ -71,7 +71,7 @@ public class TunnelService {
 		//
 		if (tagOpList.size()!= 0) {
 			TagOperation tagOp1 = tagOpList.get(0);
-			if (tagOp.getWrited().booleanValue() && !tagOp.getLocked().booleanValue()) {
+			if (tagOp1.getWrited().booleanValue() && !tagOp1.getLocked().booleanValue()) {
 				return tagOp1;
 			}
 		}

@@ -1,5 +1,7 @@
 package net.smart.rfid.tunnel.util;
 
+import java.math.BigInteger;
+
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -127,8 +129,8 @@ public class Utils {
 	}
 
 	public static void main(String[] args) {
-		//String ret = fromHexToInt("E2801170200013FB54BD08ED");
-		//System.out.println(ret);
+		String ret = fromHexToBin("FFFFAAAA000011112222333344445555");
+		System.out.println(ret);
 		
 		//String aa = getSerialFromMask2("FFFA-----","FFFBA12345");
 		
@@ -136,11 +138,11 @@ public class Utils {
 		
 		
 		//http://localhost:8080/api/v1/callWMSIn
-		Client client = ClientBuilder.newClient();
-		WebTarget target = client.target("http://localhost:8080/api/v1/callWMSIn");
-		String response = target.request(MediaType.APPLICATION_JSON).post(Entity.json("ffff"), String.class);
-		
-		System.out.println(response);
+//		Client client = ClientBuilder.newClient();
+//		WebTarget target = client.target("http://localhost:8080/api/v1/callWMSIn");
+//		String response = target.request(MediaType.APPLICATION_JSON).post(Entity.json("ffff"), String.class);
+//		
+//		System.out.println(response);
 		  
 	}
 	//XXXXX----XXXX sostituisce i ----- con i valori corrispondenti
@@ -186,6 +188,13 @@ public class Utils {
 	public static String removeSpaces(String st) {
 		String ret = st.replaceAll("\\s+","");;
 		return ret;
+	}
+	
+	public static String fromHexToBin(String hex) {
+		
+		BigInteger bigInt = new BigInteger(hex, 16);
+		String binary = "";//Integer.toBinaryString(num);
+		return binary;
 	}
 
 }
