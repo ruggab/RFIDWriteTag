@@ -1,17 +1,22 @@
 package net.smart.rfid.tunnel.job;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.springframework.util.StringUtils;
 
 import com.impinj.octane.AutoStartMode;
 import com.impinj.octane.AutoStopMode;
 import com.impinj.octane.BitPointers;
 import com.impinj.octane.ImpinjReader;
+import com.impinj.octane.LockResultStatus;
 import com.impinj.octane.MemoryBank;
 import com.impinj.octane.OctaneSdkException;
 import com.impinj.octane.PcBits;
+import com.impinj.octane.ReportConfig;
+import com.impinj.octane.ReportMode;
 import com.impinj.octane.SearchMode;
 import com.impinj.octane.SequenceState;
 import com.impinj.octane.Settings;
@@ -35,6 +40,7 @@ import com.impinj.octane.WriteResultStatus;
 
 import net.smart.rfid.tunnel.db.entity.TagOperation;
 import net.smart.rfid.tunnel.db.services.TunnelService;
+import net.smart.rfid.tunnel.listneroctane.TagReportListenerImplementation;
 import net.smart.rfid.tunnel.model.InfoPackage;
 import net.smart.rfid.tunnel.util.PropertiesUtil;
 
@@ -46,13 +52,13 @@ import net.smart.rfid.tunnel.util.PropertiesUtil;
 public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 	Logger logger = Logger.getLogger(WriteEpc.class);
 
-	static short WRITE_EPC_OP_ID = 111;
-	static short WRITE_PC_OP_ID = 222;
-	static short WRITE_ACC_PSW_OP_ID = 333;
-	static short LOCK_ACC_PSW_OP_ID = 444;
-	static short UNLOCK_USER_OP_ID = 555;
-	static short LOCK_USER_OP_ID = 666;
-	static int opSpecID = 1;
+	static short LOCK_ACC_PSW_OP_ID = 0;
+	static short LOCK_EPC_OP_ID = 1;
+	static short UNLOCK_EPC_OP_ID = 10;
+	static short WRITE_EPC_OP_ID = 20;
+	static short WRITE_PC_OP_ID = 30;
+	static short WRITE_ACC_PSW_OP_ID = 40;
+	static Integer opSecID = 1;
 	static int contTagRep = 0;
 	static int contCmplOp = 0;
 	// static int outstanding = 0;
@@ -87,15 +93,39 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 
 			// just use a single antenna here
 			settings.getAntennas().disableAll();
+			//
 			settings.getAntennas().getAntenna((short) 1).setEnabled(true);
+			settings.getAntennas().getAntenna((short) 1).setIsMaxRxSensitivity(Boolean.valueOf(false));
+			settings.getAntennas().getAntenna((short) 1).setIsMaxTxPower(Boolean.valueOf(false));
 			settings.getAntennas().getAntenna((short) 1).setTxPowerinDbm(Double.valueOf(10));
 			settings.getAntennas().getAntenna((short) 1).setRxSensitivityinDbm(Double.valueOf(-70));
+			//settings.getAntennas().getAntenna((short) 1).setIsMaxTxPower(false);
+
+			// just use a single antenna here
+			
+			settings.getAntennas().getAntenna((short) 2).setEnabled(true);
+			settings.getAntennas().getAntenna((short) 2).setIsMaxRxSensitivity(Boolean.valueOf(false));
+			settings.getAntennas().getAntenna((short) 2).setIsMaxTxPower(Boolean.valueOf(false));
+			settings.getAntennas().getAntenna((short) 2).setTxPowerinDbm(Double.valueOf(10));
+			settings.getAntennas().getAntenna((short) 2).setRxSensitivityinDbm(Double.valueOf(-70));
+			//settings.getAntennas().getAntenna((short) 2).setIsMaxTxPower(false);
+
+			// just use a single antenna here
+			
+			settings.getAntennas().getAntenna((short) 3).setEnabled(true);
+			settings.getAntennas().getAntenna((short) 3).setIsMaxRxSensitivity(Boolean.valueOf(false));
+			settings.getAntennas().getAntenna((short) 3).setIsMaxTxPower(Boolean.valueOf(false));
+			settings.getAntennas().getAntenna((short) 3).setTxPowerinDbm(Double.valueOf(10));
+			settings.getAntennas().getAntenna((short) 3).setRxSensitivityinDbm(Double.valueOf(-70));
+			//settings.getAntennas().getAntenna((short) 3).setIsMaxTxPower(false);
+			
 
 			// set session one so we see the tag only once every few seconds
-			settings.getReport().setIncludeAntennaPortNumber(true);
+			
+			//
 			settings.setRfMode(1000);
-			settings.setSearchMode(SearchMode.SingleTarget);
-			settings.setSession(1);
+			settings.setSearchMode(SearchMode.DualTarget);
+			settings.setSession(0);
 			// turn these on so we have them always
 			settings.getReport().setIncludePcBits(true);
 
@@ -106,6 +136,24 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 			settings.getAutoStop().setMode(AutoStopMode.Duration);
 			settings.getAutoStop().setDurationInMs(1000);
 
+			ReportConfig r = settings.getReport();
+			//settings.getReport().setIncludeAntennaPortNumber(true);
+		
+			// tell the reader to include the antenna port number in the report
+			r.setIncludeAntennaPortNumber(true);
+			r.setIncludeFirstSeenTime(true);
+			r.setIncludeChannel(true);
+			r.setIncludeCrc(true);
+			r.setIncludeDopplerFrequency(true);
+			r.setIncludeFastId(true);
+			r.setIncludeLastSeenTime(true);
+			r.setIncludeLastSeenTime(true);
+			r.setIncludePeakRssi(true);
+			r.setIncludePhaseAngle(true);
+			r.setIncludeSeenCount(true);
+			settings.setReport(r);
+
+			
 			// Apply the new settings
 			reader.applySettings(settings);
 
@@ -136,74 +184,64 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 
 	public void onTagReported(ImpinjReader reader, TagReport report) {
 		List<Tag> tags = report.getTags();
-		contTagRep = contTagRep + 1;
+
 		logger.info("onTagReported contTagRep: " + contTagRep);
 		for (Tag t : tags) {
-			logger.info("onTagReported contTagRep i: " + contTagRep);
 			index++;
+			// Metto quattro 0 avanti alla stringa
 			String appo = "";// String.format("%04d", index);
 			logger.info("onTagReported: EPC: " + t.getEpc().toHexString());
-
+			/// ANTENNA 1 PER UNLOCK
 			if (t.getAntennaPortNumber() == 1 && t.isPcBitsPresent()) {
 				short pc = t.getPcBits();
 				String currentEpc = t.getEpc().toHexString();
+				String tid = t.getTid().toHexString();
+				try {
+					// Recupero il tag
+					opSecID = opSecID + 1;
+					TagOperation tagOp = this.tunnelService.getTagByTid(tid);
+					unlockRequest(tagOp, tid, currentEpc, pc);
+
+				} catch (Exception e) {
+					logger.error("onTagReported: Failed To program EPC: " + e.toString());
+				}
+			}
+			/// ANTENNA 2 PER SCRITTURA o UNLOCK
+			if (t.getAntennaPortNumber() == 2 && t.isPcBitsPresent()) {
+				short pc = t.getPcBits();
+				String currentEpc = t.getEpc().toHexString();
+				String tid = t.getTid().toHexString();
 				String newEpc = infoPackage.getPack() + currentEpc.substring(5, currentEpc.length());
 				try {
-					if (!this.tunnelService.isEpcWorked(currentEpc)) {
-						// Recupero la password dall'epc
-						String password = "abcd1234";
-
-						TagOpSequence seq3 = new TagOpSequence();
-						seq3.setOps(new ArrayList<TagOp>());
-						seq3.setExecutionCount((short) 1); // forever
-						seq3.setState(SequenceState.Active);
-						seq3.setId(opSpecID++);
-						seq3 = unlockTag(seq3, currentEpc, password);
-						reader.addOpSequence(seq3);
-						//
-						TagOpSequence seq4 = new TagOpSequence();
-
-						seq4.setOps(new ArrayList<TagOp>());
-						seq4.setExecutionCount((short) 1); // forever
-						seq4.setState(SequenceState.Active);
-						seq4.setId(opSpecID++);
-						seq4 = programEpc(seq4, currentEpc, pc, newEpc);
-						reader.addOpSequence(seq4);
-
-						// Salvo nel db i tag con wited e lock a false
-						TagOperation tagOp = new TagOperation();
-						tagOp.setEpcOld(currentEpc);
-						tagOp.setEpcNew(newEpc);
-						tagOp.setLocked(false);
-						tagOp.setWrited(false);
-						this.tunnelService.save(tagOp);
+					opSecID = opSecID + 1;
+					TagOperation tagOp = this.tunnelService.getTagByTid(tid);
+					if (tagOp == null || !tagOp.getUnlocked()) {
+						unlockRequest(tagOp, tid, currentEpc, pc);
+					} else if (StringUtils.isEmpty(tagOp.getEpcNew()) || !tagOp.getWrited().booleanValue()) {
+						writeRequest(tagOp, currentEpc, newEpc, t.getAntennaPortNumber(), pc);
 					}
+
 					//
 				} catch (Exception e) {
 					logger.error("onTagReported: Failed To program EPC: " + e.toString());
 				}
 			}
-
-			if (t.getAntennaPortNumber() == 2 && t.isPcBitsPresent()) {
+			/// ANTENNA 3 PER LOCK o SCRITTURA O UNLOCK
+			if (t.getAntennaPortNumber() == 3 && t.isPcBitsPresent()) {
 				short pc = t.getPcBits();
 				String currentEpc = t.getEpc().toHexString();
+				String tid = t.getTid().toHexString();
+				String newEpc = infoPackage.getPack() + currentEpc.substring(5, currentEpc.length());
 				try {
-					
-					TagOperation tagOp = this.tunnelService.isEpcWritedAndNotLocked(currentEpc);
-					if (tagOp != null) {
-						//
-						String password = "abcd1234";
-
-						TagOpSequence seq2 = new TagOpSequence();
-						seq2.setOps(new ArrayList<TagOp>());
-						seq2.setExecutionCount((short) 1); // forever
-						seq2.setState(SequenceState.Active);
-						seq2.setId(opSpecID++);
-						seq2 = lockTag(seq2, currentEpc, password);
-						reader.addOpSequence(seq2);
-						//
-						tagOp.setLocked(true);
-						this.tunnelService.save(tagOp);
+					opSecID = opSecID + 1;
+					TagOperation tagOp = this.tunnelService.getTagByTid(tid);
+					if (tagOp == null || !tagOp.getUnlocked()) {
+						unlockRequest(tagOp, tid, currentEpc, pc);
+					} else if (StringUtils.isEmpty(tagOp.getEpcNew()) || !tagOp.getWrited().booleanValue()) {
+						writeRequest(tagOp, currentEpc, newEpc, t.getAntennaPortNumber(), pc);
+					} else if (!StringUtils.isEmpty(tagOp.getEpcNew()) && tagOp.getWrited().booleanValue()) {
+						opSecID = opSecID + 1;
+						lockRequest(tagOp, currentEpc, t.getAntennaPortNumber());
 					}
 					//
 				} catch (Exception e) {
@@ -212,6 +250,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 			}
 
 		}
+
 	}
 
 	public void onTagOpComplete(ImpinjReader reader, TagOpReport results) {
@@ -229,14 +268,12 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 					logger.info("onTagOpComplete:  Write EPC Complete: ");
 					if (tr.getResult() == WriteResultStatus.Success) {
 						try {
-							List<TagOperation> tagOpList = this.tunnelService.findByEpcOld(tr.getTag().getEpc().toHexString());
-							TagOperation tagOp = tagOpList.get(0);
+							TagOperation tagOp = this.tunnelService.getTagByTid(tr.getTag().getTid().toHexString());
 							tagOp.setWrited(true);
 							this.tunnelService.save(tagOp);
 						} catch (Exception e) {
 							logger.error(e);
 						}
-
 					}
 				}
 				if (tr.getOpId() == WRITE_PC_OP_ID) {
@@ -249,21 +286,44 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 				logger.info("onTagOpComplete: Status : " + tr.getResult());
 				logger.info("onTagOpComplete: Number of words written : " + tr.getNumWordsWritten());
 				logger.info("onTagOpComplete: result: " + tr.getResult().toString() + " words_written: " + tr.getNumWordsWritten());
-				// outstanding--;
-			} else if (t instanceof TagLockOpResult) {
+
+			}
+			if (t instanceof TagLockOpResult) {
 				// Cast it to the correct type.
 				// These are the results of locking the access password or user memory.
 				TagLockOpResult lr = (TagLockOpResult) t;
+
+				if (lr.getOpId() == UNLOCK_EPC_OP_ID) {
+					// Se il tag è stato scritto con successo allora faccio update nel db in modo da non lavorare piu
+					// questo epc
+					logger.info("onTagOpComplete:  unlock EPC Complete: ");
+					if (lr.getResult() == LockResultStatus.Success) {
+						try {
+							TagOperation tagOp = this.tunnelService.getTagByTid(lr.getTag().getTid().toHexString());
+							tagOp.setUnlocked(true);
+							this.tunnelService.save(tagOp);
+						} catch (Exception e) {
+							logger.error(e);
+						}
+
+					}
+				}
+				if (lr.getOpId() == LOCK_EPC_OP_ID) {
+					// Se il tag è stato scritto con successo allora faccio update nel db in modo da non lavorare piu
+					// questo epc
+					logger.info("onTagOpComplete:  LOCK EPC Complete: ");
+					if (lr.getResult() == LockResultStatus.Success) {
+						try {
+							TagOperation tagOp = this.tunnelService.getTagByTid(lr.getTag().getTid().toHexString());
+							tagOp.setLocked(true);
+							this.tunnelService.save(tagOp);
+						} catch (Exception e) {
+							logger.error(e);
+						}
+
+					}
+				}
 				logger.info("onTagOpComplete: lock OP seq id " + lr.getSequenceId());
-				if (lr.getOpId() == LOCK_ACC_PSW_OP_ID) {
-					logger.info("onTagOpComplete:  LOCK ACC PSW ");
-				}
-				if (lr.getOpId() == UNLOCK_USER_OP_ID) {
-					logger.info("onTagOpComplete:  UNLOCK USER ");
-				}
-				if (lr.getOpId() == LOCK_USER_OP_ID) {
-					logger.info("onTagOpComplete:  LOCK USER ");
-				}
 				// Print out the results.
 				logger.info("onTagOpComplete: Lock operation complete.");
 				logger.info("onTagOpComplete: EPC " + lr.getTag().getEpc());
@@ -321,7 +381,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 		// since we have a password set, we have to use it
 		lockOp.setAccessPassword(TagData.fromHexString(password));
 		// lockOp.setAccessPasswordLockType(TagLockState.Lock);
-		lockOp.Id = LOCK_USER_OP_ID;
+		lockOp.Id = LOCK_EPC_OP_ID;
 		// uncomment to lock user memory so it can't be changed
 		lockOp.setEpcLockType(TagLockState.Lock);
 
@@ -347,7 +407,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 		lockOp.setAccessPassword(TagData.fromHexString(password));
 		// lockOp.setAccessPasswordLockType(TagLockState.Unlock);
 		// uncomment to lock user memory so it can't be changed
-		lockOp.Id = UNLOCK_USER_OP_ID;
+		lockOp.Id = UNLOCK_EPC_OP_ID;
 		lockOp.setEpcLockType(TagLockState.Unlock);
 		// add to the list
 		seq.getOps().add(lockOp);
@@ -402,4 +462,74 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 		return seq;
 	}
 
+	private void unlockRequest(TagOperation tagOp, String tid, String currentEpc, int antenna) throws Exception {
+		try {
+			if (tagOp == null) {
+				tagOp = new TagOperation();
+				tagOp.setTid(tid);
+				tagOp.setEpcOld(currentEpc);
+				tagOp.setEpcNew("");
+				tagOp.setUnlocked(false);
+				tagOp.setLocked(false);
+				tagOp.setWrited(false);
+				tagOp.setNumAntenna(antenna);
+				tagOp.setIdOperation(UNLOCK_EPC_OP_ID);
+				tagOp.setSeqOperation(opSecID);
+				this.tunnelService.save(tagOp);
+			} else {
+				// if not unlocked request unlocked op for it
+				if (!tagOp.getUnlocked().booleanValue()) {
+					TagOpSequence seq1 = new TagOpSequence();
+					seq1.setOps(new ArrayList<TagOp>());
+					seq1.setExecutionCount((short) 1); // forever
+					seq1.setState(SequenceState.Active);
+					seq1.setId(opSecID);
+					seq1 = unlockTag(seq1, currentEpc, infoPackage.getPswUnlock());
+					reader.addOpSequence(seq1);
+
+				}
+			}
+		} catch (Exception e) {
+			throw e;
+		}
+	}
+
+	private void writeRequest(TagOperation tagOp, String currentEpc, String newEpc, int antenna, short pc) throws Exception {
+		try {
+			tagOp.setEpcNew(newEpc);
+			tagOp.setNumAntenna(antenna);
+			tagOp.setIdOperation(WRITE_EPC_OP_ID);
+			tagOp.setSeqOperation(opSecID);
+			this.tunnelService.save(tagOp);
+			//
+			TagOpSequence seq = new TagOpSequence();
+			seq.setOps(new ArrayList<TagOp>());
+			seq.setExecutionCount((short) 1); // forever
+			seq.setState(SequenceState.Active);
+			seq.setId(opSecID);
+			seq = programEpc(seq, currentEpc, pc, newEpc);
+			reader.addOpSequence(seq);
+
+		} catch (Exception e) {
+			throw e;
+		}
+	}
+
+	private void lockRequest(TagOperation tagOp, String currentEpc, int antenna) throws Exception {
+		//
+		tagOp.setNumAntenna(antenna);
+		tagOp.setIdOperation(LOCK_EPC_OP_ID);
+		tagOp.setSeqOperation(opSecID);
+		this.tunnelService.save(tagOp);
+		//
+		TagOpSequence seq2 = new TagOpSequence();
+		seq2.setOps(new ArrayList<TagOp>());
+		seq2.setExecutionCount((short) 1); // forever
+		seq2.setState(SequenceState.Active);
+		seq2.setId(opSecID++);
+		seq2 = lockTag(seq2, currentEpc, infoPackage.getPswLock());
+		reader.addOpSequence(seq2);
+		//
+		
+	}
 }

@@ -6,14 +6,12 @@ import javax.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import net.smart.rfid.tunnel.db.services.TunnelService;
 import net.smart.rfid.tunnel.exception.ResourceNotFoundException;
-import net.smart.rfid.tunnel.model.InfoPackage;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -27,10 +25,12 @@ public class TunnelRestAPIs {
 	public void start(@RequestParam(value = "sku") String sku, 
 			@RequestParam(value = "pack") @Min(10000) @Max(99999) Integer pack, 
 			@RequestParam(value = "brand") @Min(1) @Max(32) Integer brand, 
-			@RequestParam(value = "section") @Min(0) @Max(3) Integer section) throws Exception, ResourceNotFoundException {
+			@RequestParam(value = "section") @Min(0) @Max(3) Integer section,
+			@RequestParam(value = "password", required = true) String lockPsw,
+			@RequestParam(value = "password", required = true) String unlockPsw) throws Exception, ResourceNotFoundException {
 		try {
 
-			tunnelService.startEpcWriteAndLockIt(sku, pack, brand, section);
+			tunnelService.startEpcWriteAndLockIt(sku, pack, brand, section, lockPsw, unlockPsw);
 
 		} catch (Exception e) {
 			throw e;

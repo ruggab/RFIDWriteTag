@@ -14,11 +14,15 @@ public interface TagOperationRepository extends JpaRepository<TagOperation, Long
 
 	List<TagOperation> findByEpcNew(String epcNew);
 	
+	List<TagOperation> findByTid(String tid);
+	
 	List<TagOperation> findByEpcOldAndEpcNew(String epcOld, String epcNew);
 	
 	
-	long countByEpcNew(String name);
+	long countByEpcNew(String epcnew);
 	
-	long countByEpcOld(String name);
+	long countByEpcOld(String epcold);
+	
+	long countByTid(String tid);
 
 }

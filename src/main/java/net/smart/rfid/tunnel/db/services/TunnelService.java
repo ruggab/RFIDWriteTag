@@ -23,9 +23,9 @@ public class TunnelService {
 	@Autowired
 	TagOperationRepository tagOperationRepository;
 
-	public void startEpcWriteAndLockIt(String sku, Integer pack, Integer brand, Integer section) throws Exception {
+	public void startEpcWriteAndLockIt(String sku, Integer pack, Integer brand, Integer section, String lockPsw, String unlockPsw) throws Exception {
 		try {
-			InfoPackage infoPackage = new InfoPackage(sku, pack, brand, section);
+			InfoPackage infoPackage = new InfoPackage(sku, pack, brand, section, lockPsw, unlockPsw);
 			writeEpc = new WriteEpc(this, infoPackage);
 			writeEpc.run();
 		} catch (Exception e) {
@@ -98,7 +98,7 @@ public class TunnelService {
 		return tagOpList;
 	}
 	
-	public boolean isEpcWorked(String epc) throws Exception {
+	public boolean isTagWorkedByEpc(String epc) throws Exception {
 		long cont = 0;
 		boolean ret = false;
 		long contNew = tagOperationRepository.countByEpcNew(epc);
@@ -106,6 +106,24 @@ public class TunnelService {
 		cont = contNew + contOld;
 		if (cont > 0) {
 			ret = true;
+		}
+		return ret;
+	}
+	
+	public boolean isTagWorkedByTid(String tid) throws Exception {
+		boolean ret = false;
+		long contTid = tagOperationRepository.countByTid(tid);
+		if (contTid > 0) {
+			ret = true;
+		}
+		return ret;
+	}
+	
+	public TagOperation getTagByTid(String tid) throws Exception {
+		TagOperation ret = null;
+		List<TagOperation> listTagOperation = tagOperationRepository.findByTid(tid);
+		if (listTagOperation.size() > 0) {
+			ret = listTagOperation.get(0);
 		}
 		return ret;
 	}

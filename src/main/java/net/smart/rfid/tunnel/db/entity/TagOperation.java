@@ -20,6 +20,8 @@ public class TagOperation {
 	@Column(name = "id")
 	private Long id;
 
+	private String tid;
+
 	private String epcOld;
 
 	private String epcNew;
@@ -27,6 +29,14 @@ public class TagOperation {
 	private Boolean writed;
 
 	private Boolean locked;
+
+	private Boolean unlocked;
+
+	private int numAntenna;
+
+	private int idOperation;
+
+	private Integer seqOperation;
 
 	public TagOperation() {
 	}
@@ -69,6 +79,46 @@ public class TagOperation {
 
 	public void setWrited(Boolean writed) {
 		this.writed = writed;
+	}
+
+	public Boolean getUnlocked() {
+		return unlocked;
+	}
+
+	public void setUnlocked(Boolean unlocked) {
+		this.unlocked = unlocked;
+	}
+
+	public int getNumAntenna() {
+		return numAntenna;
+	}
+
+	public void setNumAntenna(int numAntenna) {
+		this.numAntenna = numAntenna;
+	}
+
+	public int getIdOperation() {
+		return idOperation;
+	}
+
+	public void setIdOperation(int idOperation) {
+		this.idOperation = idOperation;
+	}
+
+	public Integer getSeqOperation() {
+		return seqOperation;
+	}
+
+	public void setSeqOperation(Integer seqOperation) {
+		this.seqOperation = seqOperation;
+	}
+
+	public String getTid() {
+		return tid;
+	}
+
+	public void setTid(String tid) {
+		this.tid = tid;
 	}
 
 }

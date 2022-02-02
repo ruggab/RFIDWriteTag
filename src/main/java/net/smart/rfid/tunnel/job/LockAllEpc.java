@@ -12,6 +12,7 @@ import com.impinj.octane.ImpinjReader;
 import com.impinj.octane.MemoryBank;
 import com.impinj.octane.OctaneSdkException;
 import com.impinj.octane.PcBits;
+import com.impinj.octane.ReportConfig;
 import com.impinj.octane.SearchMode;
 import com.impinj.octane.SequenceState;
 import com.impinj.octane.Settings;
@@ -87,6 +88,8 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 			// just use a single antenna here
 			settings.getAntennas().disableAll();
 			settings.getAntennas().getAntenna((short) 1).setEnabled(true);
+			settings.getAntennas().getAntenna((short) 1).setIsMaxRxSensitivity(Boolean.valueOf(false));
+			settings.getAntennas().getAntenna((short) 1).setIsMaxTxPower(Boolean.valueOf(false));
 			settings.getAntennas().getAntenna((short) 1).setTxPowerinDbm(Double.valueOf(10));
 			settings.getAntennas().getAntenna((short) 1).setRxSensitivityinDbm(Double.valueOf(-70));
 
@@ -94,7 +97,7 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 			settings.getReport().setIncludeAntennaPortNumber(true);
 			settings.setRfMode(1000);
 			settings.setSearchMode(SearchMode.SingleTarget);
-			settings.setSession(1);
+			settings.setSession(0);
 			// turn these on so we have them always
 			settings.getReport().setIncludePcBits(true);
 
@@ -104,6 +107,23 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 			settings.getAutoStart().setPeriodInMs(2000);
 			settings.getAutoStop().setMode(AutoStopMode.Duration);
 			settings.getAutoStop().setDurationInMs(1000);
+			
+			ReportConfig r = settings.getReport();
+			//settings.getReport().setIncludeAntennaPortNumber(true);
+		
+			// tell the reader to include the antenna port number in the report
+			r.setIncludeAntennaPortNumber(true);
+			r.setIncludeFirstSeenTime(true);
+			r.setIncludeChannel(true);
+			r.setIncludeCrc(true);
+			r.setIncludeDopplerFrequency(true);
+			r.setIncludeFastId(true);
+			r.setIncludeLastSeenTime(true);
+			r.setIncludeLastSeenTime(true);
+			r.setIncludePeakRssi(true);
+			r.setIncludePhaseAngle(true);
+			r.setIncludeSeenCount(true);
+			settings.setReport(r);
 
 			// Apply the new settings
 			reader.applySettings(settings);
