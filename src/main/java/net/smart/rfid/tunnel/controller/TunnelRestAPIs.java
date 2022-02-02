@@ -3,6 +3,7 @@ package net.smart.rfid.tunnel.controller;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +18,7 @@ import net.smart.rfid.tunnel.exception.ResourceNotFoundException;
 @RequestMapping("/api/v1")
 @CrossOrigin(origins = "http://localhost:4200")
 public class TunnelRestAPIs {
+	Logger logger = Logger.getLogger(TunnelRestAPIs.class);
 
 	@Autowired
 	private TunnelService tunnelService;
@@ -26,12 +28,11 @@ public class TunnelRestAPIs {
 			@RequestParam(value = "pack") @Min(10000) @Max(99999) Integer pack, 
 			@RequestParam(value = "brand") @Min(1) @Max(32) Integer brand, 
 			@RequestParam(value = "section") @Min(0) @Max(3) Integer section,
-			@RequestParam(value = "password", required = true) String lockPsw,
-			@RequestParam(value = "password", required = true) String unlockPsw) throws Exception, ResourceNotFoundException {
+			@RequestParam(value = "lockPsw", required = true) String lockPsw,
+			@RequestParam(value = "unlockPsw", required = true) String unlockPsw) throws Exception, ResourceNotFoundException {
 		try {
-
 			tunnelService.startEpcWriteAndLockIt(sku, pack, brand, section, lockPsw, unlockPsw);
-
+			logger.debug("Start Tunnel");
 		} catch (Exception e) {
 			throw e;
 		}

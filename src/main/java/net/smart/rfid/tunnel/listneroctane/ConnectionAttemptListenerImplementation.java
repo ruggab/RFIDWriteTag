@@ -11,6 +11,6 @@ public class ConnectionAttemptListenerImplementation implements ConnectionAttemp
 	Logger logger = Logger.getLogger(ConnectionAttemptListenerImplementation.class);
 	@Override
 	public void onConnectionAttempt(ImpinjReader reader, ConnectionAttemptEvent e) {
-		logger.info("Connection Attempt....................");
+		logger.debug("Connection Attempt....................");
 	}
 }

@@ -22,7 +22,7 @@ public class TagReportListenerImplementation implements TagReportListener {
 		List<Tag> tags = report.getTags();
 
 		for (Tag t : tags) {
-			logger.info("EPC: " + t.getEpc().toHexString());
+			logger.debug("EPC: " + t.getEpc().toHexString());
 		}
 	}
 

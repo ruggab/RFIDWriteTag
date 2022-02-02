@@ -16,6 +16,6 @@ public class ReaderStartListenerImplementation implements ReaderStartListener {
 	}
     @Override
     public void onReaderStart(ImpinjReader reader, ReaderStartEvent e) {
-    	logger.info("Listener - Reader_Started");
+    	logger.debug("Listener - Reader_Started");
     }
 }

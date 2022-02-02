@@ -79,7 +79,7 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 			reader = new ImpinjReader();
 
 			// Connect
-			logger.info("Connecting to " + hostname);
+			logger.debug("Connecting to " + hostname);
 			reader.connect(hostname);
 
 			// Get the default settings
@@ -135,7 +135,7 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 			// Start the reader
 			reader.start();
 
-			logger.info("STARTED");
+			logger.debug("STARTED");
 		} catch (OctaneSdkException ex) {
 			logger.error(ex.getMessage());
 		} catch (Exception ex) {
@@ -145,10 +145,10 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 	}
 
 	public void stop() throws OctaneSdkException {
-		logger.info("Stopping  ");
+		logger.debug("Stopping  ");
 		reader.stop();
 
-		logger.info("Disconnecting from ");
+		logger.debug("Disconnecting from ");
 		reader.disconnect();
 
 	}
@@ -156,12 +156,12 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 	public void onTagReported(ImpinjReader reader, TagReport report) {
 		List<Tag> tags = report.getTags();
 		contTagRep = contTagRep + 1;
-		logger.info("onTagReported contTagRep: " + contTagRep);
+		logger.debug("onTagReported contTagRep: " + contTagRep);
 		for (Tag t : tags) {
-			logger.info("onTagReported contTagRep i: " + contTagRep);
+			logger.debug("onTagReported contTagRep i: " + contTagRep);
 			index++;
 			String appo = "";// String.format("%04d", index);
-			logger.info("onTagReported: EPC: " + t.getEpc().toHexString());
+			logger.debug("onTagReported: EPC: " + t.getEpc().toHexString());
 
 			if (t.isPcBitsPresent()) {
 				short pc = t.getPcBits();
@@ -187,45 +187,45 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 	}
 
 	public void onTagOpComplete(ImpinjReader reader, TagOpReport results) {
-		logger.info("onTagOpComplete: ");
+		logger.debug("onTagOpComplete: ");
 		contCmplOp = contCmplOp + 1;
-		logger.info("onTagReported contCmplOp: " + contCmplOp);
+		logger.debug("onTagReported contCmplOp: " + contCmplOp);
 		for (TagOpResult t : results.getResults()) {
 			if (t instanceof TagWriteOpResult) {
 				TagWriteOpResult tr = (TagWriteOpResult) t;
-				logger.info("onTagOpComplete: Write OP seq id " + tr.getSequenceId());
+				logger.debug("onTagOpComplete: Write OP seq id " + tr.getSequenceId());
 				if (tr.getOpId() == WRITE_EPC_OP_ID) {
-					logger.info("onTagOpComplete:  Write EPC Complete: ");
+					logger.debug("onTagOpComplete:  Write EPC Complete: ");
 				}
 				if (tr.getOpId() == WRITE_PC_OP_ID) {
-					logger.info("onTagOpComplete:  Write PC Complete: ");
+					logger.debug("onTagOpComplete:  Write PC Complete: ");
 				}
 				if (tr.getOpId() == WRITE_ACC_PSW_OP_ID) {
-					logger.info("onTagOpComplete:  Write PASSWORD Complete: ");
+					logger.debug("onTagOpComplete:  Write PASSWORD Complete: ");
 				}
-				logger.info("onTagOpComplete: EPC : " + tr.getTag().getEpc());
-				logger.info("onTagOpComplete: Status : " + tr.getResult());
-				logger.info("onTagOpComplete: Number of words written : " + tr.getNumWordsWritten());
-				logger.info("onTagOpComplete: result: " + tr.getResult().toString() + " words_written: " + tr.getNumWordsWritten());
+				logger.debug("onTagOpComplete: EPC : " + tr.getTag().getEpc());
+				logger.debug("onTagOpComplete: Status : " + tr.getResult());
+				logger.debug("onTagOpComplete: Number of words written : " + tr.getNumWordsWritten());
+				logger.debug("onTagOpComplete: result: " + tr.getResult().toString() + " words_written: " + tr.getNumWordsWritten());
 				// outstanding--;
 			} else if (t instanceof TagLockOpResult) {
 				// Cast it to the correct type.
 				// These are the results of locking the access password or user memory.
 				TagLockOpResult lr = (TagLockOpResult) t;
-				logger.info("onTagOpComplete: lock OP seq id " + lr.getSequenceId());
+				logger.debug("onTagOpComplete: lock OP seq id " + lr.getSequenceId());
 				if (lr.getOpId() == LOCK_ACC_PSW_OP_ID) {
-					logger.info("onTagOpComplete:  LOCK ACC PSW ");
+					logger.debug("onTagOpComplete:  LOCK ACC PSW ");
 				}
 				if (lr.getOpId() == UNLOCK_USER_OP_ID) {
-					logger.info("onTagOpComplete:  UNLOCK USER ");
+					logger.debug("onTagOpComplete:  UNLOCK USER ");
 				}
 				if (lr.getOpId() == LOCK_USER_OP_ID) {
-					logger.info("onTagOpComplete:  LOCK USER ");
+					logger.debug("onTagOpComplete:  LOCK USER ");
 				}
 				// Print out the results.
-				logger.info("onTagOpComplete: Lock operation complete.");
-				logger.info("onTagOpComplete: EPC " + lr.getTag().getEpc());
-				logger.info("onTagOpComplete: Status " + lr.getResult());
+				logger.debug("onTagOpComplete: Lock operation complete.");
+				logger.debug("onTagOpComplete: EPC " + lr.getTag().getEpc());
+				logger.debug("onTagOpComplete: Status " + lr.getResult());
 
 			}
 
@@ -234,7 +234,7 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 
 	private TagOpSequence writeAccessPasswordAndLockEpc(TagOpSequence seq, String currentEpc, String password) throws Exception {
 
-		logger.info("writeAccessPassword: Write Access Password  and lock it");
+		logger.debug("writeAccessPassword: Write Access Password  and lock it");
 
 		// Effettuo questa operazione solo alla currentTag
 		seq.setTargetTag(new TargetTag());

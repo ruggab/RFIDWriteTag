@@ -18,6 +18,6 @@ public class ReaderStopListenerImplementation implements ReaderStopListener {
 	
     @Override
     public void onReaderStop(ImpinjReader reader, ReaderStopEvent e) {
-    	logger.info("Listener - Reader_Stopped");
+    	logger.debug("Listener - Reader_Stopped");
     }
 }

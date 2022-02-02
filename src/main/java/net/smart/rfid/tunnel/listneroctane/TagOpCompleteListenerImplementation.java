@@ -24,19 +24,19 @@ public class TagOpCompleteListenerImplementation implements TagOpCompleteListene
                 // Cast it to the correct type.
 				TagWriteOpResult tr = (TagWriteOpResult) t;
                 // Print out the results.
-				logger.info("Set access password complete.");
-				logger.info("EPC : " + tr.getTag().getEpc());
-				logger.info("Status : " + tr.getResult());
-				logger.info("Number of words written : " + tr.getNumWordsWritten());
+				logger.debug("Set access password complete.");
+				logger.debug("EPC : " + tr.getTag().getEpc());
+				logger.debug("Status : " + tr.getResult());
+				logger.debug("Number of words written : " + tr.getNumWordsWritten());
             }
             else if (t instanceof  TagLockOpResult) {
                 // Cast it to the correct type.
                 // These are the results of locking the access password or user memory.
                 TagLockOpResult lr = (TagLockOpResult) t;
                 // Print out the results.
-                logger.info("Lock operation complete.");
-                logger.info("EPC : {0}" + lr.getTag().getEpc());
-                logger.info("Status : {0}" + lr.getResult());
+                logger.debug("Lock operation complete.");
+                logger.debug("EPC : {0}" + lr.getTag().getEpc());
+                logger.debug("Status : {0}" + lr.getResult());
             }
         }
 	}

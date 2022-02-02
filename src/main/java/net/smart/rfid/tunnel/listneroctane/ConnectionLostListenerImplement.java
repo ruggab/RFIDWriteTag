@@ -18,7 +18,7 @@ public class ConnectionLostListenerImplement implements ConnectionLostListener {
 	@Override
 	public void onConnectionLost(ImpinjReader reader) {
 		
-		logger.info("ATTENTION  ConnectionLostListenerImplement");
+		logger.debug("ATTENTION  ConnectionLostListenerImplement");
 		
 	}
 }
