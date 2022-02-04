@@ -2,6 +2,8 @@ package net.smart.rfid.tunnel.controller;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,14 +26,17 @@ public class TunnelRestAPIs {
 	private TunnelService tunnelService;
 
 	@PostMapping("/startEpcWriteAndLockIt")
-	public void start(@RequestParam(value = "sku") String sku, 
+	public void start(@RequestParam(value = "dbmAntenna1") @Min(10) @Max(30) Integer dbmAntenna1,
+			@RequestParam(value = "dbmAntenna2") @Min(10) @Max(30) Integer dbmAntenna2,
+			@RequestParam(value = "dbmAntenna3") @Min(10) @Max(30) Integer dbmAntenna3,
+			@RequestParam(value = "sku") @NotBlank @Size(min = 14) @Size(max = 14) String sku, 
 			@RequestParam(value = "pack") @Min(10000) @Max(99999) Integer pack, 
 			@RequestParam(value = "brand") @Min(1) @Max(32) Integer brand, 
 			@RequestParam(value = "section") @Min(0) @Max(3) Integer section,
 			@RequestParam(value = "lockPsw", required = true) String lockPsw,
 			@RequestParam(value = "unlockPsw", required = true) String unlockPsw) throws Exception, ResourceNotFoundException {
 		try {
-			tunnelService.startEpcWriteAndLockIt(sku, pack, brand, section, lockPsw, unlockPsw);
+			tunnelService.startEpcWriteAndLockIt(dbmAntenna1, dbmAntenna2, dbmAntenna3, sku, pack, brand, section, lockPsw, unlockPsw);
 			logger.debug("Start Tunnel");
 		} catch (Exception e) {
 			throw e;

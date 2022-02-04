@@ -10,6 +10,8 @@ public class PropertiesUtil {
 	
 	private static String targetEpc;
 	
+	private static String infoClient;
+	
 	
 	public static String getHostname() {
 		return hostname;
@@ -26,6 +28,16 @@ public class PropertiesUtil {
 	public  void setTargetEpc(String targetEpc) {
 		this.targetEpc = targetEpc;
 	}
+
+	public static String getInfoClient() {
+		return infoClient;
+	}
+
+	public void setInfoClient(String infoClient) {
+		this.infoClient = infoClient;
+	}
+	
+	
 	
 	
 

@@ -38,7 +38,10 @@ import com.impinj.octane.WriteResultStatus;
 
 import net.smart.rfid.tunnel.db.entity.TagOperation;
 import net.smart.rfid.tunnel.db.services.TunnelService;
+import net.smart.rfid.tunnel.model.ConfTunnel;
 import net.smart.rfid.tunnel.model.InfoPackage;
+import net.smart.rfid.tunnel.util.InfoGenerator;
+import net.smart.rfid.tunnel.util.InfoGeneratorFactory;
 import net.smart.rfid.tunnel.util.PropertiesUtil;
 
 /**
@@ -61,13 +64,16 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 	// static int outstanding = 0;
 	static int index = 0;
 	private ImpinjReader reader;
-
+	private InfoGenerator infoGenerator;;
 	private TunnelService tunnelService;
 	private InfoPackage infoPackage;
+	private ConfTunnel confTunnel;
 
-	public WriteEpc(TunnelService tunnelService, InfoPackage infoPackage) {
+	public WriteEpc(TunnelService tunnelService, InfoPackage infoPackage, ConfTunnel confTunnel) {
 		this.infoPackage = infoPackage;
+		this.confTunnel = confTunnel;
 		this.tunnelService = tunnelService;
+		this.infoGenerator = InfoGeneratorFactory.createInfoGenerator(infoPackage);
 	}
 
 	public void run() {
@@ -94,7 +100,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 			settings.getAntennas().getAntenna((short) 1).setEnabled(true);
 			settings.getAntennas().getAntenna((short) 1).setIsMaxRxSensitivity(Boolean.valueOf(false));
 			settings.getAntennas().getAntenna((short) 1).setIsMaxTxPower(Boolean.valueOf(false));
-			settings.getAntennas().getAntenna((short) 1).setTxPowerinDbm(Double.valueOf(10));
+			settings.getAntennas().getAntenna((short) 1).setTxPowerinDbm(Double.valueOf(confTunnel.getDbmAntenna1()));
 			settings.getAntennas().getAntenna((short) 1).setRxSensitivityinDbm(Double.valueOf(-70));
 			//settings.getAntennas().getAntenna((short) 1).setIsMaxTxPower(false);
 
@@ -103,7 +109,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 			settings.getAntennas().getAntenna((short) 2).setEnabled(true);
 			settings.getAntennas().getAntenna((short) 2).setIsMaxRxSensitivity(Boolean.valueOf(false));
 			settings.getAntennas().getAntenna((short) 2).setIsMaxTxPower(Boolean.valueOf(false));
-			settings.getAntennas().getAntenna((short) 2).setTxPowerinDbm(Double.valueOf(10));
+			settings.getAntennas().getAntenna((short) 2).setTxPowerinDbm(Double.valueOf(confTunnel.getDbmAntenna2()));
 			settings.getAntennas().getAntenna((short) 2).setRxSensitivityinDbm(Double.valueOf(-70));
 			//settings.getAntennas().getAntenna((short) 2).setIsMaxTxPower(false);
 
@@ -112,7 +118,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 			settings.getAntennas().getAntenna((short) 3).setEnabled(true);
 			settings.getAntennas().getAntenna((short) 3).setIsMaxRxSensitivity(Boolean.valueOf(false));
 			settings.getAntennas().getAntenna((short) 3).setIsMaxTxPower(Boolean.valueOf(false));
-			settings.getAntennas().getAntenna((short) 3).setTxPowerinDbm(Double.valueOf(10));
+			settings.getAntennas().getAntenna((short) 3).setTxPowerinDbm(Double.valueOf(confTunnel.getDbmAntenna3()));
 			settings.getAntennas().getAntenna((short) 3).setRxSensitivityinDbm(Double.valueOf(-70));
 			//settings.getAntennas().getAntenna((short) 3).setIsMaxTxPower(false);
 			
@@ -208,7 +214,8 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 				short pc = t.getPcBits();
 				String currentEpc = t.getEpc().toHexString();
 				String tid = t.getTid().toHexString();
-				String newEpc = infoPackage.getPack() + currentEpc.substring(5, currentEpc.length());
+				//Create new EPC from old 
+				String newEpc = infoGenerator.getInfo().createNewEpc(currentEpc);
 				try {
 					opSecID = opSecID + 1;
 					TagOperation tagOp = this.tunnelService.getTagByTid(tid);
@@ -334,7 +341,29 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 		}
 	}
 
-	
+	private TagOpSequence unlockTag(TagOpSequence seq, String currentEpc, String password) throws Exception {
+		//
+		logger.debug("unlockTag:");
+		logger.debug("unlockTag: EPC " + currentEpc);
+		// Effettuo questa operazione solo alla currentTag
+		seq.setTargetTag(new TargetTag());
+		seq.getTargetTag().setBitPointer(BitPointers.Epc);
+		seq.getTargetTag().setMemoryBank(MemoryBank.Epc);
+		seq.getTargetTag().setData(currentEpc);
+		//
+		TagLockOp lockOp = new TagLockOp();
+		// lock the access password so it can't be changed
+		// since we have a password set, we have to use it
+		lockOp.setAccessPassword(TagData.fromHexString(password));
+		// lockOp.setAccessPasswordLockType(TagLockState.Unlock);
+		// uncomment to lock user memory so it can't be changed
+		lockOp.Id = UNLOCK_EPC_OP_ID;
+		lockOp.setEpcLockType(TagLockState.Unlock);
+		// add to the list
+		seq.getOps().add(lockOp);
+		//
+		return seq;
+	}
 
 	private TagOpSequence lockTag(TagOpSequence seq, String currentEpc, String password) throws Exception {
 		logger.debug("lockTag:");
@@ -360,29 +389,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 		return seq;
 	}
 
-	private TagOpSequence unlockTag(TagOpSequence seq, String currentEpc, String password) throws Exception {
-		//
-		logger.debug("unlockTag:");
-		logger.debug("unlockTag: EPC " + currentEpc);
-		// Effettuo questa operazione solo alla currentTag
-		seq.setTargetTag(new TargetTag());
-		seq.getTargetTag().setBitPointer(BitPointers.Epc);
-		seq.getTargetTag().setMemoryBank(MemoryBank.Epc);
-		seq.getTargetTag().setData(currentEpc);
-		//
-		TagLockOp lockOp = new TagLockOp();
-		// lock the access password so it can't be changed
-		// since we have a password set, we have to use it
-		lockOp.setAccessPassword(TagData.fromHexString(password));
-		// lockOp.setAccessPasswordLockType(TagLockState.Unlock);
-		// uncomment to lock user memory so it can't be changed
-		lockOp.Id = UNLOCK_EPC_OP_ID;
-		lockOp.setEpcLockType(TagLockState.Unlock);
-		// add to the list
-		seq.getOps().add(lockOp);
-		//
-		return seq;
-	}
+	
 
 	private TagOpSequence programEpc(TagOpSequence seq, String currentEpc, short currentPC, String newEpc) throws Exception {
 		if ((currentEpc.length() % 4 != 0) || (newEpc.length() % 4 != 0)) {
@@ -453,7 +460,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 					seq1.setExecutionCount((short) 1); // forever
 					seq1.setState(SequenceState.Active);
 					seq1.setId(opSecID);
-					seq1 = unlockTag(seq1, currentEpc, infoPackage.getPswUnlock());
+					seq1 = unlockTag(seq1, currentEpc, infoGenerator.getInfo().createPasswordlock(currentEpc));
 					reader.addOpSequence(seq1);
 
 				}
@@ -496,7 +503,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 		seq2.setExecutionCount((short) 1); // forever
 		seq2.setState(SequenceState.Active);
 		seq2.setId(opSecID++);
-		seq2 = lockTag(seq2, currentEpc, infoPackage.getPswLock());
+		seq2 = lockTag(seq2, currentEpc, infoGenerator.getInfo().createPasswordlock(currentEpc));
 		reader.addOpSequence(seq2);
 		//
 		

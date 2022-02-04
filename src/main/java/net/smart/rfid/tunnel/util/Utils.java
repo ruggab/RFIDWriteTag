@@ -1,6 +1,10 @@
 package net.smart.rfid.tunnel.util;
 
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -8,15 +12,16 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.compress.utils.ByteUtils;
+
 import com.impinj.octane.AutoStartMode;
 import com.impinj.octane.AutoStopMode;
 import com.impinj.octane.GpoMode;
 import com.impinj.octane.OctaneSdkException;
 import com.impinj.octane.SearchMode;
 
-
 public class Utils {
-	
+
 	public static final String MISSING_EXPECTED = "E-MISSING-EXPECTED";
 	public static final String MISSING_PACKAGE = "E-MISSING-PACKAGE";
 	public static final String MORE_PACKAGE = "E-MORE-PACKAGE";
@@ -28,7 +33,7 @@ public class Utils {
 	public static final String SKU = "SKU";
 	public static final String QTY = "QTY";
 	public static final String TAG_ERR = "E-";
-	
+
 	public static AutoStartMode getAutoStartMode(Integer idAutoStartMode) throws OctaneSdkException {
 
 		AutoStartMode ret = null;
@@ -129,23 +134,19 @@ public class Utils {
 	}
 
 	public static void main(String[] args) {
-		String ret = fromHexToBin("FFFFAAAA000011112222333344445555");
-		System.out.println(ret);
-		
-		//String aa = getSerialFromMask2("FFFA-----","FFFBA12345");
-		
-		//System.out.println(aa);
-		
-		
-		//http://localhost:8080/api/v1/callWMSIn
-//		Client client = ClientBuilder.newClient();
-//		WebTarget target = client.target("http://localhost:8080/api/v1/callWMSIn");
-//		String response = target.request(MediaType.APPLICATION_JSON).post(Entity.json("ffff"), String.class);
-//		
-//		System.out.println(response);
-		  
+		//
+		String currentEpc = "000011112222333344445555666677778888";
+		String bynaryEpc = Utils.fromHexToBin(currentEpc);
+		//Etraggo il serial number per ricavare la password
+		String serialNumber = bynaryEpc.substring(64, 96);
+		//Trasformo il serial number da Bin a decimal
+		Integer serialNumDec = Utils.fromBinToDecimal(serialNumber);
+		Integer chiave = Utils.MD5(serialNumDec);
+		System.out.println(chiave);
+
 	}
-	//XXXXX----XXXX sostituisce i ----- con i valori corrispondenti
+
+	// XXXXX----XXXX sostituisce i ----- con i valori corrispondenti
 	public static String getSerialFromMask(String mask, String epc) {
 		char splitter = 'X';
 		char[] maskArr = mask.toCharArray();
@@ -160,19 +161,19 @@ public class Utils {
 				textI++;
 			}
 		}
-		String str = String. valueOf(maskArr);
+		String str = String.valueOf(maskArr);
 		String ret = str.replace("X", "");
 		return ret;
 	}
-	
-	//XXXXX----XXXX se la string contiene i valori corrispondenti a X restituisce quelli corrispondenti ai ----
+
+	// XXXXX----XXXX se la string contiene i valori corrispondenti a X restituisce quelli corrispondenti ai ----
 	public static String getSerialFromMask2(String mask, String epc) {
 		char splitter = '-';
 		char[] maskArr = mask.toCharArray();
 		char[] epcArr = epc.toCharArray();
 		String barcode = "";
 		for (int i = 0; i < maskArr.length; i++) {
-			if (maskArr[i] == splitter ||  maskArr[i] == epcArr[i]) {
+			if (maskArr[i] == splitter || maskArr[i] == epcArr[i]) {
 				if (maskArr[i] == '-') {
 					barcode = barcode + epcArr[i];
 				}
@@ -182,19 +183,48 @@ public class Utils {
 		}
 		return barcode;
 	}
-	
-	
-	
+
 	public static String removeSpaces(String st) {
-		String ret = st.replaceAll("\\s+","");;
+		String ret = st.replaceAll("\\s+", "");
 		return ret;
 	}
-	
+
 	public static String fromHexToBin(String hex) {
-		
 		BigInteger bigInt = new BigInteger(hex, 16);
-		String binary = "";//Integer.toBinaryString(num);
+		String binary = bigInt.toString(2);
 		return binary;
 	}
+
+	public static Integer MD5(Integer value) {
+		MessageDigest md = null;
+		try {
+			md = MessageDigest.getInstance("MD5");
+		} catch (NoSuchAlgorithmException e) {
+
+		}
+		//
+		ByteBuffer bb = ByteBuffer.allocate(4);
+		bb.order(ByteOrder.BIG_ENDIAN);
+		bb.putInt((int) value & 0xFFFFFFFF);
+		byte[] theDigest = md.digest(bb.array());
+
+		//
+		ByteBuffer buffer = ByteBuffer.wrap(theDigest, 0, 4);
+		buffer.order(ByteOrder.BIG_ENDIAN);
+		return buffer.getInt();
+	}
+	
+	public static Integer fromBinToDecimal(String bin) {
+		BigInteger bigInt = new BigInteger(bin, 2);
+		return bigInt.intValue();
+	}
+	
+	public static String fromDecToBin(String dec) {
+		BigInteger bigInt = new BigInteger(dec, 10);
+		String binary = bigInt.toString(2);
+		return binary;
+	}
+	
+	
 
 }

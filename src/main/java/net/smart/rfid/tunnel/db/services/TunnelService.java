@@ -10,6 +10,7 @@ import net.smart.rfid.tunnel.db.entity.TagOperation;
 import net.smart.rfid.tunnel.db.repository.TagOperationRepository;
 import net.smart.rfid.tunnel.job.LockAllEpc;
 import net.smart.rfid.tunnel.job.WriteEpc;
+import net.smart.rfid.tunnel.model.ConfTunnel;
 import net.smart.rfid.tunnel.model.InfoPackage;
 
 @Service
@@ -23,10 +24,11 @@ public class TunnelService {
 	@Autowired
 	TagOperationRepository tagOperationRepository;
 
-	public void startEpcWriteAndLockIt(String sku, Integer pack, Integer brand, Integer section, String lockPsw, String unlockPsw) throws Exception {
+	public void startEpcWriteAndLockIt(Integer dbm1,Integer dbm2, Integer dbm3, String sku, Integer pack, Integer brand, Integer section, String lockPsw, String unlockPsw) throws Exception {
 		try {
+			ConfTunnel confTunnel = new ConfTunnel(dbm1,dbm2,dbm3,10);
 			InfoPackage infoPackage = new InfoPackage(sku, pack, brand, section, lockPsw, unlockPsw);
-			writeEpc = new WriteEpc(this, infoPackage);
+			writeEpc = new WriteEpc(this, infoPackage, confTunnel);
 			writeEpc.run();
 		} catch (Exception e) {
 			logger.error(e.getMessage());

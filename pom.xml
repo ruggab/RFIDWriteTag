@@ -9,6 +9,7 @@
 		<version>2.2.0.RELEASE</version>
 		<relativePath />
 	</parent>
+
 	<groupId>net.smart.rfid</groupId>
 	<artifactId>RFIDTunnelBe</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
@@ -47,7 +48,7 @@
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-core</artifactId>
@@ -111,8 +112,11 @@
 			<version>1.4.01</version>
 		</dependency>
 
-
-
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-compress</artifactId>
+			<version>1.18</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
