@@ -52,12 +52,13 @@ import net.smart.rfid.tunnel.util.PropertiesUtil;
 public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 	Logger logger = Logger.getLogger(WriteEpc.class);
 
-	static short LOCK_ACC_PSW_OP_ID = 0;
-	static short LOCK_EPC_OP_ID = 1;
+
 	static short UNLOCK_EPC_OP_ID = 10;
 	static short WRITE_EPC_OP_ID = 20;
-	static short WRITE_PC_OP_ID = 30;
-	static short WRITE_ACC_PSW_OP_ID = 40;
+	static short LOCK_ACC_PSW_OP_ID = 40;
+	static short LOCK_EPC_OP_ID = 30;
+	static short WRITE_PC_OP_ID  = 50;
+	
 	static Integer opSecID = 1;
 	static int contTagRep = 0;
 	static int contCmplOp = 0;
@@ -230,7 +231,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 			}
 			/// ANTENNA 3 PER LOCK o SCRITTURA O UNLOCK
 			if (t.getAntennaPortNumber() == 1 && t.isPcBitsPresent()) {
-				short pc = t.getPcBits();
+				
 				String currentEpc = t.getEpc().toHexString();
 				String tid = t.getTid().toHexString();
 
@@ -238,10 +239,10 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 					opSecID = opSecID + 1;
 					TagOperation tagOp = this.tunnelService.getTagByTid(tid);
 					if (tagOp == null || !tagOp.getUnlocked()) {
-						unlockRequest(tagOp, tid, currentEpc, pc);
+						unlockRequest(tagOp, tid, currentEpc, t.getAntennaPortNumber());
 					} else if (tagOp.getUnlocked() && (StringUtils.isEmpty(tagOp.getEpcNew()) || !tagOp.getEpcWrited().booleanValue())) {
 						String newEpc = infoGenerator.getInfo().createNewEpc(currentEpc);
-						writeRequest(tagOp, currentEpc, newEpc, t.getAntennaPortNumber(), pc);
+						writeRequest(tagOp, currentEpc, newEpc, t.getAntennaPortNumber(), t.getAntennaPortNumber());
 					} else if (tagOp.getUnlocked() && !StringUtils.isEmpty(tagOp.getEpcNew()) && tagOp.getEpcWrited().booleanValue()) {
 						lockRequest(tagOp, currentEpc, t.getAntennaPortNumber());
 					}
@@ -282,12 +283,8 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 					logger.debug("onTagOpComplete: WRITE EPC END words written : " + tr.getNumWordsWritten());
 					logger.debug("onTagOpComplete: WRITE EPC END result: " + tr.getResult().toString() + " words_written: " + tr.getNumWordsWritten());
 				}
-				if (tr.getOpId() == WRITE_PC_OP_ID) {
-					logger.debug("onTagOpComplete: Write PC Complete: ");
-				}
-				if (tr.getOpId() == WRITE_ACC_PSW_OP_ID) {
-					logger.debug("onTagOpComplete: Write PASSWORD Complete: ");
-				}
+				
+				
 
 			}
 			if (t instanceof TagLockOpResult) {

@@ -139,24 +139,26 @@ public class Utils {
 
 	public static void main(String[] args) {
 		//
-//		String currentEpc = "3035EBD2F8143D6F6AA5EBDBAAAA3333";
-//		String bynaryEpc = Utils.fromHexToBin(currentEpc);
-//		//Etraggo il serial number per ricavare la password
-//		String serialNumber = bynaryEpc.substring(64, 96);
-//		//Trasformo il serial number da Bin a decimal
-//		Integer serialNumDec = Utils.fromBinToDecimal(serialNumber);
-//		Integer chiave = Utils.MD5(serialNumDec);
-//		System.out.println(chiave);
+		String currentEpc = "3035EBD2F810C6EF6AA511E7AAAA1111";
+		String bynaryEpc = Utils.fromHexToBin(currentEpc);
+		// Etraggo il serial number per ricavare la password
+		String serialNumber = bynaryEpc.substring(64, 96);
+		// Trasformo il serial number da Bin a decimal
+		Integer serialNumDec = Utils.fromBinToDecimal(serialNumber);
+		Integer chiave = Utils.MD5(serialNumDec);
+		//
+		String ret = Utils.fromDecToHex(chiave.toString());
+		System.out.println(ret);
 		
 //		String secBrand = Utils.fromDecToBin("1");
 //		int numZeri = 6 - secBrand.length();
 //		String newSecBrand = String.format("%05d", Integer.parseInt(secBrand));
 //		System.out.println(newSecBrand);
 		
-		String skuBin = "11111111111111111111111111111111111111";
-		
-		String skuBinNew = padLeftZeros(skuBin, 40);
-		System.out.println(skuBinNew);
+//		String skuBin = "11111111111111111111111111111111111111";
+//		
+//		String skuBinNew = padLeftZeros(skuBin, 40);
+//		System.out.println(skuBinNew);
 	}
 
 	// XXXXX----XXXX sostituisce i ----- con i valori corrispondenti

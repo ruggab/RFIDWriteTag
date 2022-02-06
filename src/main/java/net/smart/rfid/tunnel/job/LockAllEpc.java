@@ -47,12 +47,9 @@ import net.smart.rfid.tunnel.util.PropertiesUtil;
 public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 	Logger logger = Logger.getLogger(LockAllEpc.class);
 
-	static short LOCK_ACC_PSW_OP_ID = 0;
-	static short LOCK_EPC_OP_ID = 1;
-	static short UNLOCK_EPC_OP_ID = 10;
-	static short WRITE_EPC_OP_ID = 20;
-	static short WRITE_PC_OP_ID = 30;
-	static short WRITE_ACC_PSW_OP_ID = 40;
+	static short LOCK_ACC_PSW_OP_ID = 10;
+	static short WRITE_ACC_PSW_OP_ID = 20;
+	static short LOCK_EPC_OP_ID = 30;
 	static Integer seqOp = 1;
 	static int contTagRep = 0;
 	static int contCmplOp = 0;
@@ -104,10 +101,10 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 
 			// Set periodic mode so we reset the tag and it shows up with its
 			// new EPC
-//			settings.getAutoStart().setMode(AutoStartMode.Periodic);
-//			settings.getAutoStart().setPeriodInMs(2000);
-//			settings.getAutoStop().setMode(AutoStopMode.Duration);
-//			settings.getAutoStop().setDurationInMs(1000);
+			// settings.getAutoStart().setMode(AutoStartMode.Periodic);
+			// settings.getAutoStart().setPeriodInMs(2000);
+			// settings.getAutoStop().setMode(AutoStopMode.Duration);
+			// settings.getAutoStop().setDurationInMs(1000);
 
 			ReportConfig r = settings.getReport();
 			// settings.getReport().setIncludeAntennaPortNumber(true);
@@ -162,22 +159,20 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 			logger.debug("onTagReported contTagRep i: " + contTagRep);
 			logger.debug("onTagReported: EPC: " + t.getEpc().toHexString());
 
-			if (t.isPcBitsPresent()) {
-				short pc = t.getPcBits();
-				String currentEpc = t.getEpc().toHexString();
-				String tid = t.getTid().toHexString();
-				try {
-					seqOp = seqOp + 1;
-					TagOperation tagOp = this.tunnelService.getTagByTid(tid);
-					if (tagOp == null || !tagOp.getPswWrited()) {
-						accessPswWriteRequest(tagOp, tid, currentEpc, pc);
-					} else if (!tagOp.getLocked() && tagOp.getPswWrited()) {
-						lockEpcRequest(currentEpc, password);
-					}
-					//
-				} catch (Exception e) {
-					logger.error("onTagReported: Failed To program EPC: " + e.toString());
+			
+			String currentEpc = t.getEpc().toHexString();
+			String tid = t.getTid().toHexString();
+			try {
+				seqOp = seqOp + 1;
+				TagOperation tagOp = this.tunnelService.getTagByTid(tid);
+				if (tagOp == null || !tagOp.getPswWrited()) {
+					accessPswWriteRequest(tagOp, tid, currentEpc, 1);
+				} else if (!tagOp.getLocked() && tagOp.getPswWrited()) {
+					lockEpcRequest(currentEpc, password);
 				}
+				//
+			} catch (Exception e) {
+				logger.error("onTagReported: Failed To program EPC: " + e.toString());
 			}
 
 		}
@@ -191,12 +186,6 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 			if (t instanceof TagWriteOpResult) {
 				TagWriteOpResult tr = (TagWriteOpResult) t;
 				logger.debug("onTagOpComplete: Write OP seq id " + tr.getSequenceId());
-				if (tr.getOpId() == WRITE_EPC_OP_ID) {
-					logger.debug("onTagOpComplete:  Write EPC Complete: ");
-				}
-				if (tr.getOpId() == WRITE_PC_OP_ID) {
-					logger.debug("onTagOpComplete:  Write PC Complete: ");
-				}
 				if (tr.getOpId() == WRITE_ACC_PSW_OP_ID) {
 					if (tr.getResult() == WriteResultStatus.Success) {
 						try {
@@ -224,9 +213,7 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 				if (lr.getOpId() == LOCK_ACC_PSW_OP_ID) {
 					logger.debug("onTagOpComplete:  LOCK ACC PSW ");
 				}
-				if (lr.getOpId() == UNLOCK_EPC_OP_ID) {
-					logger.debug("onTagOpComplete:  UNLOCK USER ");
-				}
+				
 				if (lr.getOpId() == LOCK_EPC_OP_ID) {
 					if (lr.getResult() == LockResultStatus.Success) {
 						try {
@@ -269,10 +256,8 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 		seq.getTargetTag().setBitPointer(BitPointers.Epc);
 		seq.getTargetTag().setMemoryBank(MemoryBank.Epc);
 		seq.getTargetTag().setData(currentEpc);
-		// write a new access password
 
 		TagData td1 = TagData.fromHexString(password);
-		TagData td2 = TagData.fromWord(new Integer(password));
 
 		TagLockOp lockOp = new TagLockOp();
 		// lock the access password so it can't be changed
@@ -323,7 +308,7 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 		seq.getTargetTag().setData(currentEpc);
 		// write a new access password
 		TagData td1 = TagData.fromHexString(password);
-		TagData td2 = TagData.fromWord(new Integer(password));
+		// TagData td2 = TagData.fromWord(new Integer(password));
 		TagWriteOp writeOp = new TagWriteOp();
 		writeOp.setMemoryBank(MemoryBank.Reserved);
 		writeOp.setWordPointer(WordPointers.AccessPassword);
