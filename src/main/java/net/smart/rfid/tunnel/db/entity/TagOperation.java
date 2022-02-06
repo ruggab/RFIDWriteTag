@@ -26,15 +26,17 @@ public class TagOperation {
 
 	private String epcNew;
 
-	private Boolean writed;
+	private Boolean epcWrited;
+	
+	private Boolean pswWrited;
 
 	private Boolean locked;
-
+	
 	private Boolean unlocked;
 
-	private int numAntenna;
+	private Integer numAntenna;
 
-	private int idOperation;
+	private Integer idOperation;
 
 	private Integer seqOperation;
 
@@ -73,20 +75,14 @@ public class TagOperation {
 		this.locked = locked;
 	}
 
-	public Boolean getWrited() {
-		return writed;
+
+
+	public Boolean getEpcWrited() {
+		return epcWrited;
 	}
 
-	public void setWrited(Boolean writed) {
-		this.writed = writed;
-	}
-
-	public Boolean getUnlocked() {
-		return unlocked;
-	}
-
-	public void setUnlocked(Boolean unlocked) {
-		this.unlocked = unlocked;
+	public void setEpcWrited(Boolean epcWrited) {
+		this.epcWrited = epcWrited;
 	}
 
 	public int getNumAntenna() {
@@ -120,5 +116,23 @@ public class TagOperation {
 	public void setTid(String tid) {
 		this.tid = tid;
 	}
+
+	public Boolean getPswWrited() {
+		return pswWrited;
+	}
+
+	public void setPswWrited(Boolean pswWrited) {
+		this.pswWrited = pswWrited;
+	}
+
+	public Boolean getUnlocked() {
+		return unlocked;
+	}
+
+	public void setUnlocked(Boolean unlocked) {
+		this.unlocked = unlocked;
+	}
+	
+	
 
 }

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import net.smart.rfid.tunnel.db.entity.TagOperation;
 import net.smart.rfid.tunnel.db.repository.TagOperationRepository;
 import net.smart.rfid.tunnel.job.LockAllEpc;
+import net.smart.rfid.tunnel.job.UnlockAllEpc;
 import net.smart.rfid.tunnel.job.WriteEpc;
 import net.smart.rfid.tunnel.model.ConfTunnel;
 import net.smart.rfid.tunnel.model.InfoPackage;
@@ -20,14 +21,15 @@ public class TunnelService {
 
 	WriteEpc writeEpc = null;
 	LockAllEpc lockAllEpc = null;
+	UnlockAllEpc unlockAllEpc = null;
 
 	@Autowired
 	TagOperationRepository tagOperationRepository;
 
-	public void startEpcWriteAndLockIt(Integer dbm1,Integer dbm2, Integer dbm3, String sku, Integer pack, Integer brand, Integer section, String lockPsw, String unlockPsw) throws Exception {
+	public void epcUnlockWriteLockStart(Integer dbm1,Integer dbm2, Integer dbm3, String sku, Integer pack, Integer brand, Integer section, String lockPsw) throws Exception {
 		try {
 			ConfTunnel confTunnel = new ConfTunnel(dbm1,dbm2,dbm3,10);
-			InfoPackage infoPackage = new InfoPackage(sku, pack, brand, section, lockPsw, unlockPsw);
+			InfoPackage infoPackage = new InfoPackage(sku, pack, brand, section, lockPsw);
 			writeEpc = new WriteEpc(this, infoPackage, confTunnel);
 			writeEpc.run();
 		} catch (Exception e) {
@@ -37,18 +39,16 @@ public class TunnelService {
 
 	}
 
-	public void stopEpcWriteAndLockIt() throws Exception {
-
+	public void epcUnlockWriteLockStop() throws Exception {
 		try {
 			writeEpc.stop();
-
 		} catch (Exception ex) {
 			logger.error("EXCEPTION DURING MANUAL STOP: " + ex.getMessage());
 		}
 	}
 	
 	
-	public void startEpcLockAll(String password) throws Exception {
+	public void newAccessPswWriteEpcLockStart(String password) throws Exception {
 		try {
 			lockAllEpc = new LockAllEpc(this, password);
 			lockAllEpc.run();
@@ -58,7 +58,7 @@ public class TunnelService {
 
 	}
 
-	public void stopEpcLockAll() throws Exception {
+	public void newAccessPswWriteEpcLockStop() throws Exception {
 		try {
 			lockAllEpc.stop();
 		} catch (Exception ex) {
@@ -66,6 +66,35 @@ public class TunnelService {
 		}
 	}
 
+	
+	
+	public void epcUnlockStart(String password) throws Exception {
+		try {
+			unlockAllEpc = new UnlockAllEpc(this, password);
+			unlockAllEpc.run();
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+
+	}
+
+	public void epcUnlockStop() throws Exception {
+		try {
+			unlockAllEpc.stop();
+		} catch (Exception ex) {
+			logger.error("EXCEPTION DURING MANUAL STOP: " + ex.getMessage());
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	public TagOperation isEpcWritedAndNotLocked(String epcNew) throws Exception {
 		//Ritorno true se il tag è scritto ma non lockato
 		TagOperation tagOp = null;
@@ -73,7 +102,7 @@ public class TunnelService {
 		//
 		if (tagOpList.size()!= 0) {
 			TagOperation tagOp1 = tagOpList.get(0);
-			if (tagOp1.getWrited().booleanValue() && !tagOp1.getLocked().booleanValue()) {
+			if (tagOp1.getEpcWrited().booleanValue() && !tagOp1.getLocked().booleanValue()) {
 				return tagOp1;
 			}
 		}
@@ -84,7 +113,7 @@ public class TunnelService {
 		boolean ret = false;
 		List<TagOperation> tagOpList = tagOperationRepository.findByEpcNew(epc);
 		if (tagOpList.size() != 0) {
-			ret = tagOpList.get(0).getWrited().booleanValue();
+			ret = tagOpList.get(0).getEpcWrited().booleanValue();
 		}
 		return ret;
 	}

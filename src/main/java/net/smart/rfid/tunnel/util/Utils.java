@@ -5,15 +5,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
-
-import org.apache.commons.compress.utils.ByteUtils;
-
 import com.impinj.octane.AutoStartMode;
 import com.impinj.octane.AutoStopMode;
 import com.impinj.octane.GpoMode;
@@ -125,6 +116,19 @@ public class Utils {
 		}
 		return ret;
 	}
+	
+	public static String padLeftZeros(String inputString, int length) {
+	    if (inputString.length() >= length) {
+	        return inputString;
+	    }
+	    StringBuilder sb = new StringBuilder();
+	    while (sb.length() < length - inputString.length()) {
+	        sb.append('0');
+	    }
+	    sb.append(inputString);
+
+	    return sb.toString();
+	}
 
 	public static String fromHexToInt(String hex) {
 		String ret = hex.substring(18, hex.length());
@@ -135,15 +139,24 @@ public class Utils {
 
 	public static void main(String[] args) {
 		//
-		String currentEpc = "000011112222333344445555666677778888";
-		String bynaryEpc = Utils.fromHexToBin(currentEpc);
-		//Etraggo il serial number per ricavare la password
-		String serialNumber = bynaryEpc.substring(64, 96);
-		//Trasformo il serial number da Bin a decimal
-		Integer serialNumDec = Utils.fromBinToDecimal(serialNumber);
-		Integer chiave = Utils.MD5(serialNumDec);
-		System.out.println(chiave);
-
+//		String currentEpc = "3035EBD2F8143D6F6AA5EBDBAAAA3333";
+//		String bynaryEpc = Utils.fromHexToBin(currentEpc);
+//		//Etraggo il serial number per ricavare la password
+//		String serialNumber = bynaryEpc.substring(64, 96);
+//		//Trasformo il serial number da Bin a decimal
+//		Integer serialNumDec = Utils.fromBinToDecimal(serialNumber);
+//		Integer chiave = Utils.MD5(serialNumDec);
+//		System.out.println(chiave);
+		
+//		String secBrand = Utils.fromDecToBin("1");
+//		int numZeri = 6 - secBrand.length();
+//		String newSecBrand = String.format("%05d", Integer.parseInt(secBrand));
+//		System.out.println(newSecBrand);
+		
+		String skuBin = "11111111111111111111111111111111111111";
+		
+		String skuBinNew = padLeftZeros(skuBin, 40);
+		System.out.println(skuBinNew);
 	}
 
 	// XXXXX----XXXX sostituisce i ----- con i valori corrispondenti
@@ -194,6 +207,19 @@ public class Utils {
 		String binary = bigInt.toString(2);
 		return binary;
 	}
+	
+	public static String fromBinToHex(String bin) {
+		BigInteger bigInt = new BigInteger(bin, 2);
+		String base16 = bigInt.toString(16);
+		return base16;
+	}
+	
+	public static String fromDecToHex(String dec) {
+		BigInteger bigInt = new BigInteger(dec, 10);
+		String base16 = bigInt.toString(16);
+		return base16;
+	}
+	
 
 	public static Integer MD5(Integer value) {
 		MessageDigest md = null;

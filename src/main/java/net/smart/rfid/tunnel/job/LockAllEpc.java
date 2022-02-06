@@ -4,14 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.springframework.util.StringUtils;
 
 import com.impinj.octane.AutoStartMode;
 import com.impinj.octane.AutoStopMode;
 import com.impinj.octane.BitPointers;
 import com.impinj.octane.ImpinjReader;
+import com.impinj.octane.LockResultStatus;
 import com.impinj.octane.MemoryBank;
 import com.impinj.octane.OctaneSdkException;
-import com.impinj.octane.PcBits;
 import com.impinj.octane.ReportConfig;
 import com.impinj.octane.SearchMode;
 import com.impinj.octane.SequenceState;
@@ -32,10 +33,10 @@ import com.impinj.octane.TagWriteOp;
 import com.impinj.octane.TagWriteOpResult;
 import com.impinj.octane.TargetTag;
 import com.impinj.octane.WordPointers;
+import com.impinj.octane.WriteResultStatus;
 
 import net.smart.rfid.tunnel.db.entity.TagOperation;
 import net.smart.rfid.tunnel.db.services.TunnelService;
-import net.smart.rfid.tunnel.model.InfoPackage;
 import net.smart.rfid.tunnel.util.PropertiesUtil;
 
 /**
@@ -46,17 +47,17 @@ import net.smart.rfid.tunnel.util.PropertiesUtil;
 public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 	Logger logger = Logger.getLogger(LockAllEpc.class);
 
-	static short WRITE_EPC_OP_ID = 111;
-	static short WRITE_PC_OP_ID = 222;
-	static short WRITE_ACC_PSW_OP_ID = 333;
-	static short LOCK_ACC_PSW_OP_ID = 444;
-	static short UNLOCK_USER_OP_ID = 555;
-	static short LOCK_USER_OP_ID = 666;
-	static int opSpecID = 1;
+	static short LOCK_ACC_PSW_OP_ID = 0;
+	static short LOCK_EPC_OP_ID = 1;
+	static short UNLOCK_EPC_OP_ID = 10;
+	static short WRITE_EPC_OP_ID = 20;
+	static short WRITE_PC_OP_ID = 30;
+	static short WRITE_ACC_PSW_OP_ID = 40;
+	static Integer seqOp = 1;
 	static int contTagRep = 0;
 	static int contCmplOp = 0;
 	// static int outstanding = 0;
-	static int index = 0;
+
 	private ImpinjReader reader;
 
 	private TunnelService tunnelService;
@@ -96,21 +97,21 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 			// set session one so we see the tag only once every few seconds
 			settings.getReport().setIncludeAntennaPortNumber(true);
 			settings.setRfMode(1000);
-			settings.setSearchMode(SearchMode.SingleTarget);
+			settings.setSearchMode(SearchMode.DualTarget);
 			settings.setSession(0);
 			// turn these on so we have them always
 			settings.getReport().setIncludePcBits(true);
 
 			// Set periodic mode so we reset the tag and it shows up with its
 			// new EPC
-			settings.getAutoStart().setMode(AutoStartMode.Periodic);
-			settings.getAutoStart().setPeriodInMs(2000);
-			settings.getAutoStop().setMode(AutoStopMode.Duration);
-			settings.getAutoStop().setDurationInMs(1000);
-			
+//			settings.getAutoStart().setMode(AutoStartMode.Periodic);
+//			settings.getAutoStart().setPeriodInMs(2000);
+//			settings.getAutoStop().setMode(AutoStopMode.Duration);
+//			settings.getAutoStop().setDurationInMs(1000);
+
 			ReportConfig r = settings.getReport();
-			//settings.getReport().setIncludeAntennaPortNumber(true);
-		
+			// settings.getReport().setIncludeAntennaPortNumber(true);
+
 			// tell the reader to include the antenna port number in the report
 			r.setIncludeAntennaPortNumber(true);
 			r.setIncludeFirstSeenTime(true);
@@ -159,24 +160,20 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 		logger.debug("onTagReported contTagRep: " + contTagRep);
 		for (Tag t : tags) {
 			logger.debug("onTagReported contTagRep i: " + contTagRep);
-			index++;
-			String appo = "";// String.format("%04d", index);
 			logger.debug("onTagReported: EPC: " + t.getEpc().toHexString());
 
 			if (t.isPcBitsPresent()) {
 				short pc = t.getPcBits();
 				String currentEpc = t.getEpc().toHexString();
+				String tid = t.getTid().toHexString();
 				try {
-
-					//
-					TagOpSequence seq1 = new TagOpSequence();
-					seq1.setOps(new ArrayList<TagOp>());
-					seq1.setExecutionCount((short) 0); // forever
-					seq1.setState(SequenceState.Active);
-					seq1.setId(opSpecID++);
-					seq1 = writeAccessPasswordAndLockEpc(seq1, currentEpc, this.password);
-					reader.addOpSequence(seq1);
-
+					seqOp = seqOp + 1;
+					TagOperation tagOp = this.tunnelService.getTagByTid(tid);
+					if (tagOp == null || !tagOp.getPswWrited()) {
+						accessPswWriteRequest(tagOp, tid, currentEpc, pc);
+					} else if (!tagOp.getLocked() && tagOp.getPswWrited()) {
+						lockEpcRequest(currentEpc, password);
+					}
 					//
 				} catch (Exception e) {
 					logger.error("onTagReported: Failed To program EPC: " + e.toString());
@@ -201,9 +198,20 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 					logger.debug("onTagOpComplete:  Write PC Complete: ");
 				}
 				if (tr.getOpId() == WRITE_ACC_PSW_OP_ID) {
-					logger.debug("onTagOpComplete:  Write PASSWORD Complete: ");
+					if (tr.getResult() == WriteResultStatus.Success) {
+						try {
+							TagOperation tagOp = this.tunnelService.getTagByTid(tr.getTag().getTid().toHexString());
+							tagOp.setPswWrited(true);
+							tagOp.setIdOperation(WRITE_ACC_PSW_OP_ID);
+							this.tunnelService.save(tagOp);
+							logger.info("EPC Complete psw writed: " + tr.getTag().getTid().toHexString());
+						} catch (Exception e) {
+							logger.error(e);
+						}
+					}
+
 				}
-				logger.debug("onTagOpComplete: EPC : " + tr.getTag().getEpc());
+				logger.debug("onTagOpComplete: WRITE Access Psw EPC : " + tr.getTag().getEpc());
 				logger.debug("onTagOpComplete: Status : " + tr.getResult());
 				logger.debug("onTagOpComplete: Number of words written : " + tr.getNumWordsWritten());
 				logger.debug("onTagOpComplete: result: " + tr.getResult().toString() + " words_written: " + tr.getNumWordsWritten());
@@ -216,14 +224,25 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 				if (lr.getOpId() == LOCK_ACC_PSW_OP_ID) {
 					logger.debug("onTagOpComplete:  LOCK ACC PSW ");
 				}
-				if (lr.getOpId() == UNLOCK_USER_OP_ID) {
+				if (lr.getOpId() == UNLOCK_EPC_OP_ID) {
 					logger.debug("onTagOpComplete:  UNLOCK USER ");
 				}
-				if (lr.getOpId() == LOCK_USER_OP_ID) {
-					logger.debug("onTagOpComplete:  LOCK USER ");
+				if (lr.getOpId() == LOCK_EPC_OP_ID) {
+					if (lr.getResult() == LockResultStatus.Success) {
+						try {
+							TagOperation tagOp = this.tunnelService.getTagByTid(lr.getTag().getTid().toHexString());
+							tagOp.setLocked(true);
+							tagOp.setUnlocked(false);
+							tagOp.setIdOperation(LOCK_EPC_OP_ID);
+							this.tunnelService.save(tagOp);
+							logger.info("EPC Complete locked: " + lr.getTag().getTid().toHexString());
+						} catch (Exception e) {
+							logger.error(e);
+						}
+					}
 				}
 				// Print out the results.
-				logger.debug("onTagOpComplete: Lock operation complete.");
+				logger.debug("onTagOpComplete: EPC Lock operation complete.");
 				logger.debug("onTagOpComplete: EPC " + lr.getTag().getEpc());
 				logger.debug("onTagOpComplete: Status " + lr.getResult());
 
@@ -232,9 +251,18 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 		}
 	}
 
-	private TagOpSequence writeAccessPasswordAndLockEpc(TagOpSequence seq, String currentEpc, String password) throws Exception {
+	private void lockEpcRequest(String currentEpc, String password) throws Exception {
+		logger.debug("lockEpcRequest:");
+		TagOpSequence seq = new TagOpSequence();
+		seq.setOps(new ArrayList<TagOp>());
+		seq.setExecutionCount((short) 0); // forever
+		seq.setState(SequenceState.Active);
+		seq.setId(seqOp);
+		seq = lockEpcOp(seq, currentEpc, password);
+		reader.addOpSequence(seq);
+	}
 
-		logger.debug("writeAccessPassword: Write Access Password  and lock it");
+	private TagOpSequence lockEpcOp(TagOpSequence seq, String currentEpc, String password) throws Exception {
 
 		// Effettuo questa operazione solo alla currentTag
 		seq.setTargetTag(new TargetTag());
@@ -242,27 +270,68 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 		seq.getTargetTag().setMemoryBank(MemoryBank.Epc);
 		seq.getTargetTag().setData(currentEpc);
 		// write a new access password
-		TagWriteOp writeOp = new TagWriteOp();
-		writeOp.setMemoryBank(MemoryBank.Reserved);
-		// access password starts at an offset into reserved memory
-		writeOp.setWordPointer(WordPointers.AccessPassword);
-		writeOp.setData(TagData.fromHexString(password));
-		writeOp.Id = WRITE_ACC_PSW_OP_ID;
-		// no access password at this point
+
+		TagData td1 = TagData.fromHexString(password);
+		TagData td2 = TagData.fromWord(new Integer(password));
 
 		TagLockOp lockOp = new TagLockOp();
 		// lock the access password so it can't be changed
 		// since we have a password set, we have to use it
-		lockOp.Id = LOCK_ACC_PSW_OP_ID;
-		lockOp.setAccessPassword(TagData.fromHexString(password));
+		lockOp.Id = LOCK_EPC_OP_ID;
+		lockOp.setAccessPassword(td1);
 		lockOp.setAccessPasswordLockType(TagLockState.Lock);
 		lockOp.setEpcLockType(TagLockState.Lock);
-		// add to the list
-		seq.getOps().add(writeOp);
+		//
 		seq.getOps().add(lockOp);
-
 		return seq;
 
+	}
+
+	private void accessPswWriteRequest(TagOperation tagOp, String tid, String currentEpc, int antenna) throws Exception {
+		try {
+			if (tagOp == null) {
+				tagOp = new TagOperation();
+				tagOp.setTid(tid);
+				tagOp.setEpcOld(currentEpc);
+				tagOp.setEpcNew("");
+				tagOp.setLocked(false);
+				tagOp.setEpcWrited(false);
+				tagOp.setPswWrited(false);
+				tagOp.setNumAntenna(1);
+				tagOp.setSeqOperation(seqOp);
+				this.tunnelService.save(tagOp);
+			}
+			TagOpSequence seq = new TagOpSequence();
+			seq.setOps(new ArrayList<TagOp>());
+			seq.setExecutionCount((short) 0); // forever
+			seq.setState(SequenceState.Active);
+			seq.setId(seqOp);
+			seq = writeAccessPasswordOp(seq, currentEpc, this.password);
+			reader.addOpSequence(seq);
+
+		} catch (Exception e) {
+			throw e;
+		}
+	}
+
+	private TagOpSequence writeAccessPasswordOp(TagOpSequence seq, String currentEpc, String password) throws Exception {
+		logger.debug("writeAccessPasswordOp: ");
+		// Effettuo questa operazione solo alla currentTag
+		seq.setTargetTag(new TargetTag());
+		seq.getTargetTag().setBitPointer(BitPointers.Epc);
+		seq.getTargetTag().setMemoryBank(MemoryBank.Epc);
+		seq.getTargetTag().setData(currentEpc);
+		// write a new access password
+		TagData td1 = TagData.fromHexString(password);
+		TagData td2 = TagData.fromWord(new Integer(password));
+		TagWriteOp writeOp = new TagWriteOp();
+		writeOp.setMemoryBank(MemoryBank.Reserved);
+		writeOp.setWordPointer(WordPointers.AccessPassword);
+		writeOp.setData(td1);
+		writeOp.Id = WRITE_ACC_PSW_OP_ID;
+		// add to the list
+		seq.getOps().add(writeOp);
+		return seq;
 	}
 
 }

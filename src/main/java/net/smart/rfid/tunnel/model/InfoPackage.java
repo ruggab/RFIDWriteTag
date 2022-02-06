@@ -15,13 +15,12 @@ public class InfoPackage {
 	public InfoPackage() {
 	}
 
-	public InfoPackage(String sku, Integer pack, Integer brand, Integer section, String pswLock, String pswUnlock) {
+	public InfoPackage(String sku, Integer pack, Integer brand, Integer section, String pswLock) {
 		this.sku = sku;
 		this.pack = pack;
 		this.brand = brand;
 		this.section = section;
 		this.pswLock = pswLock;
-		this.pswUnlock = pswUnlock;
 
 	}
 

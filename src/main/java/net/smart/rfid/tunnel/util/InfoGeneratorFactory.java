@@ -13,6 +13,9 @@ public class InfoGeneratorFactory {
 		if (PropertiesUtil.getInfoClient().equals("zara")) {
 			infoGeneral = new InfoZara(infoPackage);
 		}
+		if (PropertiesUtil.getInfoClient().equals("mix")) {
+			infoGeneral = new InfoMix(infoPackage);
+		}
 		infoGenerator.setInfo(infoGeneral);
 		return infoGenerator;
 	}
