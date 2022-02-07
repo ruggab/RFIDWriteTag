@@ -1,9 +1,8 @@
 package net.smart.rfid.tunnel.model;
 
 public class InfoPackage {
-	private String pswLock;
-	private String pswUnlock;
-
+	private String password;
+	
 	private String sku;
 
 	private Integer pack;
@@ -15,12 +14,12 @@ public class InfoPackage {
 	public InfoPackage() {
 	}
 
-	public InfoPackage(String sku, Integer pack, Integer brand, Integer section, String pswLock) {
+	public InfoPackage(String sku, Integer pack, Integer brand, Integer section, String password) {
 		this.sku = sku;
 		this.pack = pack;
 		this.brand = brand;
 		this.section = section;
-		this.pswLock = pswLock;
+		this.password = password;
 
 	}
 
@@ -56,20 +55,14 @@ public class InfoPackage {
 		this.brand = brand;
 	}
 
-	public String getPswLock() {
-		return pswLock;
+	public String getPassword() {
+		return password;
 	}
 
-	public void setPswLock(String pswLock) {
-		this.pswLock = pswLock;
+	public void setPassword(String password) {
+		this.password = password;
 	}
 
-	public String getPswUnlock() {
-		return pswUnlock;
-	}
-
-	public void setPswUnlock(String pswUnlock) {
-		this.pswUnlock = pswUnlock;
-	}
+	
 
 }

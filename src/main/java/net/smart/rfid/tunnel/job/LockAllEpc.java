@@ -37,6 +37,9 @@ import com.impinj.octane.WriteResultStatus;
 
 import net.smart.rfid.tunnel.db.entity.TagOperation;
 import net.smart.rfid.tunnel.db.services.TunnelService;
+import net.smart.rfid.tunnel.model.InfoPackage;
+import net.smart.rfid.tunnel.util.InfoGenerator;
+import net.smart.rfid.tunnel.util.InfoGeneratorFactory;
 import net.smart.rfid.tunnel.util.PropertiesUtil;
 
 /**
@@ -53,16 +56,18 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 	static Integer seqOp = 1;
 	static int contTagRep = 0;
 	static int contCmplOp = 0;
+	private InfoGenerator infoGenerator;
 	// static int outstanding = 0;
 
 	private ImpinjReader reader;
 
 	private TunnelService tunnelService;
-	private String password;
+	private InfoPackage infoPackage;
 
-	public LockAllEpc(TunnelService tunnelService, String password) {
-		this.password = password;
+	public LockAllEpc(TunnelService tunnelService, InfoPackage infoPackage) {
+		this.infoPackage = infoPackage;
 		this.tunnelService = tunnelService;
+		this.infoGenerator = InfoGeneratorFactory.createInfoGenerator(infoPackage);
 	}
 
 	public void run() {
@@ -168,7 +173,7 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 				if (tagOp == null || !tagOp.getPswWrited()) {
 					accessPswWriteRequest(tagOp, tid, currentEpc, 1);
 				} else if (!tagOp.getLocked() && tagOp.getPswWrited()) {
-					lockEpcRequest(currentEpc, password);
+					lockEpcRequest(currentEpc);
 				}
 				//
 			} catch (Exception e) {
@@ -238,18 +243,18 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 		}
 	}
 
-	private void lockEpcRequest(String currentEpc, String password) throws Exception {
+	private void lockEpcRequest(String currentEpc) throws Exception {
 		logger.debug("lockEpcRequest:");
 		TagOpSequence seq = new TagOpSequence();
 		seq.setOps(new ArrayList<TagOp>());
 		seq.setExecutionCount((short) 0); // forever
 		seq.setState(SequenceState.Active);
 		seq.setId(seqOp);
-		seq = lockEpcOp(seq, currentEpc, password);
+		seq = lockEpcOp(seq, currentEpc);
 		reader.addOpSequence(seq);
 	}
 
-	private TagOpSequence lockEpcOp(TagOpSequence seq, String currentEpc, String password) throws Exception {
+	private TagOpSequence lockEpcOp(TagOpSequence seq, String currentEpc) throws Exception {
 
 		// Effettuo questa operazione solo alla currentTag
 		seq.setTargetTag(new TargetTag());
@@ -257,7 +262,7 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 		seq.getTargetTag().setMemoryBank(MemoryBank.Epc);
 		seq.getTargetTag().setData(currentEpc);
 
-		TagData td1 = TagData.fromHexString(password);
+		TagData td1 = TagData.fromHexString(infoGenerator.getInfo().createPasswordUnlock(currentEpc));
 
 		TagLockOp lockOp = new TagLockOp();
 		// lock the access password so it can't be changed
@@ -291,7 +296,7 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 			seq.setExecutionCount((short) 0); // forever
 			seq.setState(SequenceState.Active);
 			seq.setId(seqOp);
-			seq = writeAccessPasswordOp(seq, currentEpc, this.password);
+			seq = writeAccessPasswordOp(seq, currentEpc);
 			reader.addOpSequence(seq);
 
 		} catch (Exception e) {
@@ -299,7 +304,7 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 		}
 	}
 
-	private TagOpSequence writeAccessPasswordOp(TagOpSequence seq, String currentEpc, String password) throws Exception {
+	private TagOpSequence writeAccessPasswordOp(TagOpSequence seq, String currentEpc) throws Exception {
 		logger.debug("writeAccessPasswordOp: ");
 		// Effettuo questa operazione solo alla currentTag
 		seq.setTargetTag(new TargetTag());
@@ -307,7 +312,7 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 		seq.getTargetTag().setMemoryBank(MemoryBank.Epc);
 		seq.getTargetTag().setData(currentEpc);
 		// write a new access password
-		TagData td1 = TagData.fromHexString(password);
+		TagData td1 = TagData.fromHexString(infoGenerator.getInfo().createPasswordlock(currentEpc));
 		// TagData td2 = TagData.fromWord(new Integer(password));
 		TagWriteOp writeOp = new TagWriteOp();
 		writeOp.setMemoryBank(MemoryBank.Reserved);

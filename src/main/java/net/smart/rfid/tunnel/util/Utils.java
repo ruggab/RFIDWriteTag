@@ -139,7 +139,7 @@ public class Utils {
 
 	public static void main(String[] args) {
 		//
-		String currentEpc = "3035EBD2F810C6EF6AA511E7AAAA1111";
+		String currentEpc = "C027A22255BB1B4F6AA511E78C0E5111";
 		String bynaryEpc = Utils.fromHexToBin(currentEpc);
 		// Etraggo il serial number per ricavare la password
 		String serialNumber = bynaryEpc.substring(64, 96);
@@ -149,16 +149,7 @@ public class Utils {
 		//
 		String ret = Utils.fromDecToHex(chiave.toString());
 		System.out.println(ret);
-		
-//		String secBrand = Utils.fromDecToBin("1");
-//		int numZeri = 6 - secBrand.length();
-//		String newSecBrand = String.format("%05d", Integer.parseInt(secBrand));
-//		System.out.println(newSecBrand);
-		
-//		String skuBin = "11111111111111111111111111111111111111";
-//		
-//		String skuBinNew = padLeftZeros(skuBin, 40);
-//		System.out.println(skuBinNew);
+
 	}
 
 	// XXXXX----XXXX sostituisce i ----- con i valori corrispondenti

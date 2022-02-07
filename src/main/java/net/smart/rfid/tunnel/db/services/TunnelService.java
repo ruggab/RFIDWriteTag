@@ -26,15 +26,14 @@ public class TunnelService {
 	@Autowired
 	TagOperationRepository tagOperationRepository;
 
-	public void epcUnlockWriteLockStart(Integer dbm1,Integer dbm2, Integer dbm3, String sku, Integer pack, Integer brand, Integer section, String lockPsw) throws Exception {
+	public void epcUnlockWriteLockStart(Integer dbm1,Integer dbm2, Integer dbm3, Boolean antenna1Enable,Boolean antenna2Enable, Boolean antenna3Enable, String sku, Integer pack, Integer brand, Integer section, String lockPsw) throws Exception {
 		try {
-			ConfTunnel confTunnel = new ConfTunnel(dbm1,dbm2,dbm3,10);
+			ConfTunnel confTunnel = new ConfTunnel(dbm1,dbm2,dbm3,10, antenna1Enable, antenna2Enable, antenna3Enable);
 			InfoPackage infoPackage = new InfoPackage(sku, pack, brand, section, lockPsw);
 			writeEpc = new WriteEpc(this, infoPackage, confTunnel);
 			writeEpc.run();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
-
 		}
 
 	}
@@ -50,7 +49,8 @@ public class TunnelService {
 	
 	public void newAccessPswWriteEpcLockStart(String password) throws Exception {
 		try {
-			lockAllEpc = new LockAllEpc(this, password);
+			InfoPackage infoPackage = new InfoPackage(null, null, null, null, password);
+			lockAllEpc = new LockAllEpc(this, infoPackage);
 			lockAllEpc.run();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
@@ -70,7 +70,8 @@ public class TunnelService {
 	
 	public void epcUnlockStart(String password) throws Exception {
 		try {
-			unlockAllEpc = new UnlockAllEpc(this, password);
+			InfoPackage infoPackage = new InfoPackage(null, null, null, null, password);
+			unlockAllEpc = new UnlockAllEpc(this, infoPackage);
 			unlockAllEpc.run();
 		} catch (Exception e) {
 			logger.error(e.getMessage());

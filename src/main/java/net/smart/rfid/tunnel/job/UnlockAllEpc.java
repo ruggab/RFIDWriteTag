@@ -4,10 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.springframework.util.StringUtils;
 
-import com.impinj.octane.AutoStartMode;
-import com.impinj.octane.AutoStopMode;
 import com.impinj.octane.BitPointers;
 import com.impinj.octane.ImpinjReader;
 import com.impinj.octane.LockResultStatus;
@@ -29,14 +26,13 @@ import com.impinj.octane.TagOpResult;
 import com.impinj.octane.TagOpSequence;
 import com.impinj.octane.TagReport;
 import com.impinj.octane.TagReportListener;
-import com.impinj.octane.TagWriteOp;
-import com.impinj.octane.TagWriteOpResult;
 import com.impinj.octane.TargetTag;
-import com.impinj.octane.WordPointers;
-import com.impinj.octane.WriteResultStatus;
 
 import net.smart.rfid.tunnel.db.entity.TagOperation;
 import net.smart.rfid.tunnel.db.services.TunnelService;
+import net.smart.rfid.tunnel.model.InfoPackage;
+import net.smart.rfid.tunnel.util.InfoGenerator;
+import net.smart.rfid.tunnel.util.InfoGeneratorFactory;
 import net.smart.rfid.tunnel.util.PropertiesUtil;
 
 /**
@@ -56,16 +52,17 @@ public class UnlockAllEpc implements TagReportListener, TagOpCompleteListener {
 	static Integer seqOp = 1;
 	static int contTagRep = 0;
 	static int contCmplOp = 0;
-	// static int outstanding = 0;
+	private InfoGenerator infoGenerator;
 
 	private ImpinjReader reader;
 
 	private TunnelService tunnelService;
-	private String password;
+	private InfoPackage infoPackage;
 
-	public UnlockAllEpc(TunnelService tunnelService, String password) {
-		this.password = password;
+	public UnlockAllEpc(TunnelService tunnelService, InfoPackage infoPackage) {
+		this.infoPackage = infoPackage;
 		this.tunnelService = tunnelService;
+		this.infoGenerator = InfoGeneratorFactory.createInfoGenerator(infoPackage);
 	}
 
 	public void run() {
@@ -166,7 +163,7 @@ public class UnlockAllEpc implements TagReportListener, TagOpCompleteListener {
 				TagOperation tagOp = this.tunnelService.getTagByTid(tid);
 				if (!tagOp.getUnlocked().booleanValue()) {
 					logger.debug("onTagReported EPC unlockEpcRequest: " + t.getEpc().toHexString());
-					unlockEpcRequest(currentEpc, password);
+					unlockEpcRequest(currentEpc);
 				}
 				//
 			} catch (Exception e) {
@@ -176,18 +173,18 @@ public class UnlockAllEpc implements TagReportListener, TagOpCompleteListener {
 		}
 	}
 
-	private void unlockEpcRequest(String currentEpc, String password) throws Exception {
+	private void unlockEpcRequest(String currentEpc) throws Exception {
 		logger.debug("unlockEpcRequest:");
 		TagOpSequence seq = new TagOpSequence();
 		seq.setOps(new ArrayList<TagOp>());
 		seq.setExecutionCount((short) 0); // forever
 		seq.setState(SequenceState.Active);
 		seq.setId(seqOp);
-		seq = unlockEpcOp(seq, currentEpc, password);
+		seq = unlockEpcOp(seq, currentEpc);
 		reader.addOpSequence(seq);
 	}
 
-	private TagOpSequence unlockEpcOp(TagOpSequence seq, String currentEpc, String password) throws Exception {
+	private TagOpSequence unlockEpcOp(TagOpSequence seq, String currentEpc) throws Exception {
 
 		// Effettuo questa operazione solo alla currentTag
 		seq.setTargetTag(new TargetTag());
@@ -196,7 +193,7 @@ public class UnlockAllEpc implements TagReportListener, TagOpCompleteListener {
 		seq.getTargetTag().setData(currentEpc);
 		// write a new access password
 
-		TagData td1 = TagData.fromHexString(password);
+		TagData td1 = TagData.fromHexString(infoGenerator.getInfo().createPasswordUnlock(currentEpc));
 
 		TagLockOp lockOp = new TagLockOp();
 		// lock the access password so it can't be changed

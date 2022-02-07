@@ -9,6 +9,7 @@ public class InfoTest extends InfoGeneral {
 		// TODO Auto-generated constructor stub
 	}
 	
+	
 	@Override
 	public String createNewEpc(String currentEpc){
 		return infoPackage.getPack() + currentEpc.substring(5, currentEpc.length());
@@ -16,12 +17,12 @@ public class InfoTest extends InfoGeneral {
 	
 	@Override
 	public String createPasswordUnlock(String currentEpc){
-		return infoPackage.getPswUnlock();
+		return infoPackage.getPassword();
 	}
 	
 	@Override
 	public String createPasswordlock(String currentEpc){
-		return infoPackage.getPswLock();
+		return infoPackage.getPassword();
 	}
 	
 

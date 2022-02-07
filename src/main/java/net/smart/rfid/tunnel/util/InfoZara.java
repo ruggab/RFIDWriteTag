@@ -17,24 +17,34 @@ public class InfoZara extends InfoGeneral {
 	public String createNewEpc(String currentEpc) {
 
 		// Brand 6 bit (da 6 a 11)
+		logger.info("OLD EPC: " +  currentEpc);
 		String secBrand = Utils.fromDecToBin(infoPackage.getBrand().toString());
+		logger.info("BRAND: " +  infoPackage.getBrand().toString());
 		secBrand = Utils.padLeftZeros(secBrand, 6);
+		logger.info("BIN BRAND: " +  infoPackage.getBrand().toString());
 		
 		// Seccion 2 bit da 12 a 13
+		logger.info("SECTION: " +  infoPackage.getSection().toString());
 		String secBin = Utils.fromDecToBin(infoPackage.getSection().toString());
 		secBin = Utils.padLeftZeros(secBin, 2);
+		logger.info("SEC BIN: " +  secBin);
 		// Sku 40 bit da 18 a 57
+		logger.info("SKU: " +  infoPackage.getSku());
 		String sku = infoPackage.getSku().substring(1, infoPackage.getSku().length() - 1);
+		logger.info("SKU12: " +  sku);
 		String skuBin = Utils.fromDecToBin(sku);
 		skuBin = Utils.padLeftZeros(skuBin, 40);
+		logger.info("skuBin: " +  skuBin);
 
 		// Lotto-pack 17 bit da 97 a 113
+		logger.info("LOTTO: " +  infoPackage.getPack().toString());
 		String lottoBin = Utils.fromDecToBin(infoPackage.getPack().toString());
 		lottoBin = Utils.padLeftZeros(lottoBin, 17);
+		logger.info("LOTTO BIN: " +  lottoBin);
 		
 		// Converto in 128 bit l'epc
 		String currentEpcBin = Utils.fromHexToBin(currentEpc);
-		logger.debug(currentEpcBin);
+		logger.debug("CUR EPC BIN" + currentEpcBin);
 		//
 		StringBuilder builder = new StringBuilder(currentEpcBin);
 		builder.replace(6, 12, secBrand);
@@ -43,9 +53,10 @@ public class InfoZara extends InfoGeneral {
 		builder.replace(97, 114, lottoBin);
 		//
 		
-		logger.debug(builder.toString());
+		logger.debug("NEW EPC BIN" + builder.toString());
 		//
 		String ret = Utils.fromBinToHex(builder.toString()).toUpperCase();
+		logger.debug("NEW EPC" + ret);
 		return ret;
 	}
 

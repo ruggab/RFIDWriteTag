@@ -15,7 +15,7 @@ public class RfidtunnelApplication extends SpringBootServletInitializer {
 	
 	public static void main(String[] args) {
 		SpringApplication.run(RfidtunnelApplication.class, args);
-		//logger.debug("RfidtunnelApplication OK");
+		
 		Logger.getLogger(RfidtunnelApplication.class).info("RfidtunnelApplication OK");
        
 	}

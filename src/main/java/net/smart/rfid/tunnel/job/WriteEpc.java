@@ -6,8 +6,6 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.springframework.util.StringUtils;
 
-import com.impinj.octane.AutoStartMode;
-import com.impinj.octane.AutoStopMode;
 import com.impinj.octane.BitPointers;
 import com.impinj.octane.ImpinjReader;
 import com.impinj.octane.LockResultStatus;
@@ -50,8 +48,8 @@ import net.smart.rfid.tunnel.util.PropertiesUtil;
  */
 
 public class WriteEpc implements TagReportListener, TagOpCompleteListener {
+	
 	Logger logger = Logger.getLogger(WriteEpc.class);
-
 
 	static short UNLOCK_EPC_OP_ID = 10;
 	static short WRITE_EPC_OP_ID = 20;
@@ -63,7 +61,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 	static int contTagRep = 0;
 	static int contCmplOp = 0;
 	private ImpinjReader reader;
-	private InfoGenerator infoGenerator;;
+	private InfoGenerator infoGenerator;
 	private TunnelService tunnelService;
 	private InfoPackage infoPackage;
 	private ConfTunnel confTunnel;
@@ -96,31 +94,29 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 			// just use a single antenna here
 			settings.getAntennas().disableAll();
 			//
-			settings.getAntennas().getAntenna((short) 1).setEnabled(true);
+			settings.getAntennas().getAntenna((short) 1).setEnabled(confTunnel.getAntenna1Enable().booleanValue());
 			settings.getAntennas().getAntenna((short) 1).setIsMaxRxSensitivity(Boolean.valueOf(false));
 			settings.getAntennas().getAntenna((short) 1).setIsMaxTxPower(Boolean.valueOf(false));
 			settings.getAntennas().getAntenna((short) 1).setTxPowerinDbm(Double.valueOf(confTunnel.getDbmAntenna1()));
 			settings.getAntennas().getAntenna((short) 1).setRxSensitivityinDbm(Double.valueOf(-70));
-			// settings.getAntennas().getAntenna((short) 1).setIsMaxTxPower(false);
 
 			// just use a single antenna here
 
-			settings.getAntennas().getAntenna((short) 2).setEnabled(true);
+			settings.getAntennas().getAntenna((short) 2).setEnabled(confTunnel.getAntenna2Enable().booleanValue());
 			settings.getAntennas().getAntenna((short) 2).setIsMaxRxSensitivity(Boolean.valueOf(false));
 			settings.getAntennas().getAntenna((short) 2).setIsMaxTxPower(Boolean.valueOf(false));
 			settings.getAntennas().getAntenna((short) 2).setTxPowerinDbm(Double.valueOf(confTunnel.getDbmAntenna2()));
 			settings.getAntennas().getAntenna((short) 2).setRxSensitivityinDbm(Double.valueOf(-70));
-			// settings.getAntennas().getAntenna((short) 2).setIsMaxTxPower(false);
 
 			// just use a single antenna here
-
-			// settings.getAntennas().getAntenna((short) 3).setEnabled(true);
-			// settings.getAntennas().getAntenna((short) 3).setIsMaxRxSensitivity(Boolean.valueOf(false));
-			// settings.getAntennas().getAntenna((short) 3).setIsMaxTxPower(Boolean.valueOf(false));
-			// settings.getAntennas().getAntenna((short)
-			// 3).setTxPowerinDbm(Double.valueOf(confTunnel.getDbmAntenna3()));
-			// settings.getAntennas().getAntenna((short) 3).setRxSensitivityinDbm(Double.valueOf(-70));
-			// settings.getAntennas().getAntenna((short) 3).setIsMaxTxPower(false);
+			 if (confTunnel.getAntenna3Enable().booleanValue()) {
+				 settings.getAntennas().getAntenna((short) 3).setEnabled(confTunnel.getAntenna3Enable().booleanValue());
+				 settings.getAntennas().getAntenna((short) 3).setIsMaxRxSensitivity(Boolean.valueOf(false));
+				 settings.getAntennas().getAntenna((short) 3).setIsMaxTxPower(Boolean.valueOf(false));
+				 settings.getAntennas().getAntenna((short) 3).setTxPowerinDbm(Double.valueOf(confTunnel.getDbmAntenna3()));
+				 settings.getAntennas().getAntenna((short) 3).setRxSensitivityinDbm(Double.valueOf(-70));
+			 }
+			 
 
 			// set session one so we see the tag only once every few seconds
 
@@ -191,7 +187,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 
 			logger.debug("onTagReported: EPC: " + t.getEpc().toHexString());
 			/// ANTENNA 1 PER UNLOCK
-			if (t.getAntennaPortNumber() == 4 && t.isPcBitsPresent()) {
+			if (t.getAntennaPortNumber() == 3 && confTunnel.getAntenna3Enable()) {
 				short pc = t.getPcBits();
 				String currentEpc = t.getEpc().toHexString();
 				String tid = t.getTid().toHexString();
@@ -200,7 +196,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 					opSecID = opSecID + 1;
 					TagOperation tagOp = this.tunnelService.getTagByTid(tid);
 					if (tagOp == null || !tagOp.getUnlocked()) {
-						unlockRequest(tagOp, tid, currentEpc, pc);
+						unlockRequest(tagOp, tid, currentEpc, t.getAntennaPortNumber());
 					}
 
 				} catch (Exception e) {
@@ -208,7 +204,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 				}
 			}
 			/// ANTENNA 2 PER SCRITTURA o UNLOCK
-			if (t.getAntennaPortNumber() == 4 && t.isPcBitsPresent()) {
+			if (t.getAntennaPortNumber() == 2 && t.isPcBitsPresent() && confTunnel.getAntenna2Enable()) {
 				short pc = t.getPcBits();
 				String currentEpc = t.getEpc().toHexString();
 				String tid = t.getTid().toHexString();
@@ -216,9 +212,9 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 				try {
 					opSecID = opSecID + 1;
 					TagOperation tagOp = this.tunnelService.getTagByTid(tid);
-					if (tagOp == null || !tagOp.getUnlocked()) {
-						unlockRequest(tagOp, tid, currentEpc, pc);
-					} else if (tagOp.getUnlocked() && (StringUtils.isEmpty(tagOp.getEpcNew()) || !tagOp.getEpcWrited().booleanValue())) {
+					if (confTunnel.getAntenna1Enable() && (tagOp == null || !tagOp.getUnlocked())) {
+						unlockRequest(tagOp, tid, currentEpc, t.getAntennaPortNumber());
+					} else if (confTunnel.getAntenna2Enable() && tagOp.getUnlocked() && (StringUtils.isEmpty(tagOp.getEpcNew()) || !tagOp.getEpcWrited().booleanValue())) {
 						// Create new EPC from old
 						String newEpc = infoGenerator.getInfo().createNewEpc(currentEpc);
 						writeRequest(tagOp, currentEpc, newEpc, t.getAntennaPortNumber(), pc);
@@ -230,7 +226,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 				}
 			}
 			/// ANTENNA 3 PER LOCK o SCRITTURA O UNLOCK
-			if (t.getAntennaPortNumber() == 1 && t.isPcBitsPresent()) {
+			if (t.getAntennaPortNumber() == 1 && t.isPcBitsPresent() && confTunnel.getAntenna1Enable()) {
 				
 				String currentEpc = t.getEpc().toHexString();
 				String tid = t.getTid().toHexString();
@@ -238,12 +234,12 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 				try {
 					opSecID = opSecID + 1;
 					TagOperation tagOp = this.tunnelService.getTagByTid(tid);
-					if (tagOp == null || !tagOp.getUnlocked()) {
+					if (confTunnel.getAntenna1Enable() && (tagOp == null || !tagOp.getUnlocked())) {
 						unlockRequest(tagOp, tid, currentEpc, t.getAntennaPortNumber());
-					} else if (tagOp.getUnlocked() && (StringUtils.isEmpty(tagOp.getEpcNew()) || !tagOp.getEpcWrited().booleanValue())) {
+					} else if (confTunnel.getAntenna1Enable() && tagOp.getUnlocked() && (StringUtils.isEmpty(tagOp.getEpcNew()) || !tagOp.getEpcWrited().booleanValue())) {
 						String newEpc = infoGenerator.getInfo().createNewEpc(currentEpc);
 						writeRequest(tagOp, currentEpc, newEpc, t.getAntennaPortNumber(), t.getAntennaPortNumber());
-					} else if (tagOp.getUnlocked() && !StringUtils.isEmpty(tagOp.getEpcNew()) && tagOp.getEpcWrited().booleanValue()) {
+					} else if (confTunnel.getAntenna1Enable() && tagOp.getUnlocked() && !StringUtils.isEmpty(tagOp.getEpcNew()) && tagOp.getEpcWrited().booleanValue()) {
 						lockRequest(tagOp, currentEpc, t.getAntennaPortNumber());
 					}
 					//

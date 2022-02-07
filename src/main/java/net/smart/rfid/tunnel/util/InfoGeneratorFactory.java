@@ -19,4 +19,8 @@ public class InfoGeneratorFactory {
 		infoGenerator.setInfo(infoGeneral);
 		return infoGenerator;
 	}
+	
+	
+	
+	
 }

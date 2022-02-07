@@ -49,12 +49,12 @@ public class InfoMix extends InfoGeneral {
 
 	@Override
 	public String createPasswordUnlock(String currentEpc) {
-		return infoPackage.getPswUnlock();
+		return infoPackage.getPassword();
 	}
 
 	@Override
 	public String createPasswordlock(String currentEpc) {
-		return infoPackage.getPswLock();
+		return infoPackage.getPassword();
 	}
 
 }

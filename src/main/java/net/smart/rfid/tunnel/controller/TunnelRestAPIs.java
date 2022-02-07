@@ -29,13 +29,20 @@ public class TunnelRestAPIs {
 	public void epcUnlockWriteLockStart(@RequestParam(value = "dbmAntenna1") @Min(10) @Max(30) Integer dbmAntenna1,
 			@RequestParam(value = "dbmAntenna2") @Min(10) @Max(30) Integer dbmAntenna2,
 			@RequestParam(value = "dbmAntenna3") @Min(10) @Max(30) Integer dbmAntenna3,
-			@RequestParam(value = "sku") @NotBlank @Size(min = 14) @Size(max = 14) String sku, 
+			@RequestParam(value = "antenna1Enable") Boolean antenna1Enable,
+			@RequestParam(value = "antenna2Enable") Boolean antenna2Enable,
+			@RequestParam(value = "antenna3Enable") Boolean antenna3Enable,
+			@RequestParam(value = "sku") String sku, 
 			@RequestParam(value = "pack") @Min(10000) @Max(99999) Integer pack, 
 			@RequestParam(value = "brand") @Min(1) @Max(32) Integer brand, 
 			@RequestParam(value = "section") @Min(0) @Max(2) Integer section,
 			@RequestParam(value = "lockPsw") String lockPsw) throws Exception, ResourceNotFoundException {
 		try {
-			tunnelService.epcUnlockWriteLockStart(dbmAntenna1, dbmAntenna2, dbmAntenna3, sku, pack, brand, section, lockPsw);
+			if (sku.length() != 14) {
+				throw new Exception("SKU lenght must be 14");
+			}
+				
+			tunnelService.epcUnlockWriteLockStart(dbmAntenna1, dbmAntenna2, dbmAntenna3, antenna1Enable,antenna2Enable,antenna3Enable,sku, pack, brand, section, lockPsw);
 			logger.debug("Start Tunnel");
 		} catch (Exception e) {
 			throw e;

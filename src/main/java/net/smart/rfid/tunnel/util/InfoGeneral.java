@@ -9,7 +9,6 @@ public class InfoGeneral {
 		this.infoPackage = infopackage;
 	}
 	
-	
 	public String createNewEpc(String currentEpc){
 		return null;
 	}
