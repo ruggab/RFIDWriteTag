@@ -27,7 +27,6 @@ import com.impinj.octane.TagOpSequence;
 import com.impinj.octane.TagReport;
 import com.impinj.octane.TagReportListener;
 import com.impinj.octane.TargetTag;
-
 import net.smart.rfid.tunnel.db.entity.TagOperation;
 import net.smart.rfid.tunnel.db.services.TunnelService;
 import net.smart.rfid.tunnel.model.InfoPackage;
@@ -40,18 +39,9 @@ import net.smart.rfid.tunnel.util.PropertiesUtil;
  * 
  */
 
-public class UnlockAllEpc implements TagReportListener, TagOpCompleteListener {
+public class UnlockAllEpc extends GenericJob implements TagReportListener, TagOpCompleteListener {
 	Logger logger = Logger.getLogger(UnlockAllEpc.class);
 
-	static short LOCK_ACC_PSW_OP_ID = 0;
-	static short LOCK_EPC_OP_ID = 1;
-	static short UNLOCK_EPC_OP_ID = 10;
-	static short WRITE_EPC_OP_ID = 20;
-	static short WRITE_PC_OP_ID = 30;
-	static short WRITE_ACC_PSW_OP_ID = 40;
-	static Integer seqOp = 1;
-	static int contTagRep = 0;
-	static int contCmplOp = 0;
 	private InfoGenerator infoGenerator;
 
 	private ImpinjReader reader;

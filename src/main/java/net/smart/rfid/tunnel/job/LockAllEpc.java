@@ -4,10 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.springframework.util.StringUtils;
 
-import com.impinj.octane.AutoStartMode;
-import com.impinj.octane.AutoStopMode;
 import com.impinj.octane.BitPointers;
 import com.impinj.octane.ImpinjReader;
 import com.impinj.octane.LockResultStatus;
@@ -47,20 +44,11 @@ import net.smart.rfid.tunnel.util.PropertiesUtil;
  * 
  */
 
-public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
+public class LockAllEpc extends GenericJob implements TagReportListener, TagOpCompleteListener {
 	Logger logger = Logger.getLogger(LockAllEpc.class);
 
-	static short LOCK_ACC_PSW_OP_ID = 10;
-	static short WRITE_ACC_PSW_OP_ID = 20;
-	static short LOCK_EPC_OP_ID = 30;
-	static Integer seqOp = 1;
-	static int contTagRep = 0;
-	static int contCmplOp = 0;
 	private InfoGenerator infoGenerator;
-	// static int outstanding = 0;
-
 	private ImpinjReader reader;
-
 	private TunnelService tunnelService;
 	private InfoPackage infoPackage;
 
@@ -210,15 +198,12 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 				logger.debug("onTagOpComplete: Number of words written : " + tr.getNumWordsWritten());
 				logger.debug("onTagOpComplete: result: " + tr.getResult().toString() + " words_written: " + tr.getNumWordsWritten());
 				// outstanding--;
-			} else if (t instanceof TagLockOpResult) {
+			} 
+			if (t instanceof TagLockOpResult) {
 				// Cast it to the correct type.
 				// These are the results of locking the access password or user memory.
 				TagLockOpResult lr = (TagLockOpResult) t;
 				logger.debug("onTagOpComplete: lock OP seq id " + lr.getSequenceId());
-				if (lr.getOpId() == LOCK_ACC_PSW_OP_ID) {
-					logger.debug("onTagOpComplete:  LOCK ACC PSW ");
-				}
-				
 				if (lr.getOpId() == LOCK_EPC_OP_ID) {
 					if (lr.getResult() == LockResultStatus.Success) {
 						try {
@@ -267,10 +252,11 @@ public class LockAllEpc implements TagReportListener, TagOpCompleteListener {
 		TagLockOp lockOp = new TagLockOp();
 		// lock the access password so it can't be changed
 		// since we have a password set, we have to use it
-		lockOp.Id = LOCK_EPC_OP_ID;
+		
 		lockOp.setAccessPassword(td1);
 		lockOp.setAccessPasswordLockType(TagLockState.Lock);
 		lockOp.setEpcLockType(TagLockState.Lock);
+		lockOp.Id = LOCK_EPC_OP_ID;
 		//
 		seq.getOps().add(lockOp);
 		return seq;

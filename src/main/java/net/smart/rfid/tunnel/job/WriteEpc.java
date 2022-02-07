@@ -47,19 +47,11 @@ import net.smart.rfid.tunnel.util.PropertiesUtil;
  * 
  */
 
-public class WriteEpc implements TagReportListener, TagOpCompleteListener {
+public class WriteEpc extends GenericJob implements TagReportListener, TagOpCompleteListener {
 	
 	Logger logger = Logger.getLogger(WriteEpc.class);
 
-	static short UNLOCK_EPC_OP_ID = 10;
-	static short WRITE_EPC_OP_ID = 20;
-	static short LOCK_ACC_PSW_OP_ID = 40;
-	static short LOCK_EPC_OP_ID = 30;
-	static short WRITE_PC_OP_ID  = 50;
 	
-	static Integer opSecID = 1;
-	static int contTagRep = 0;
-	static int contCmplOp = 0;
 	private ImpinjReader reader;
 	private InfoGenerator infoGenerator;
 	private TunnelService tunnelService;
@@ -187,20 +179,19 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 
 			logger.debug("onTagReported: EPC: " + t.getEpc().toHexString());
 			/// ANTENNA 1 PER UNLOCK
-			if (t.getAntennaPortNumber() == 3 && confTunnel.getAntenna3Enable()) {
-				short pc = t.getPcBits();
+			if (t.getAntennaPortNumber() == 1 && confTunnel.getAntenna1Enable()) {
 				String currentEpc = t.getEpc().toHexString();
 				String tid = t.getTid().toHexString();
 				try {
 					// Recupero il tag
-					opSecID = opSecID + 1;
 					TagOperation tagOp = this.tunnelService.getTagByTid(tid);
 					if (tagOp == null || !tagOp.getUnlocked()) {
+						seqOp = seqOp + 1;
 						unlockRequest(tagOp, tid, currentEpc, t.getAntennaPortNumber());
 					}
 
 				} catch (Exception e) {
-					logger.error("onTagReported: Failed To program EPC: " + e.toString());
+					logger.error("onTagReported: Failed UNLOCK EPC: " + e.toString());
 				}
 			}
 			/// ANTENNA 2 PER SCRITTURA o UNLOCK
@@ -208,14 +199,14 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 				short pc = t.getPcBits();
 				String currentEpc = t.getEpc().toHexString();
 				String tid = t.getTid().toHexString();
-
 				try {
-					opSecID = opSecID + 1;
 					TagOperation tagOp = this.tunnelService.getTagByTid(tid);
 					if (confTunnel.getAntenna1Enable() && (tagOp == null || !tagOp.getUnlocked())) {
+						seqOp = seqOp + 1;
 						unlockRequest(tagOp, tid, currentEpc, t.getAntennaPortNumber());
 					} else if (confTunnel.getAntenna2Enable() && tagOp.getUnlocked() && (StringUtils.isEmpty(tagOp.getEpcNew()) || !tagOp.getEpcWrited().booleanValue())) {
 						// Create new EPC from old
+						seqOp = seqOp + 1;
 						String newEpc = infoGenerator.getInfo().createNewEpc(currentEpc);
 						writeRequest(tagOp, currentEpc, newEpc, t.getAntennaPortNumber(), pc);
 					}
@@ -226,25 +217,28 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 				}
 			}
 			/// ANTENNA 3 PER LOCK o SCRITTURA O UNLOCK
-			if (t.getAntennaPortNumber() == 1 && t.isPcBitsPresent() && confTunnel.getAntenna1Enable()) {
+			if (t.getAntennaPortNumber() == 3 && t.isPcBitsPresent() && confTunnel.getAntenna3Enable()) {
 				
 				String currentEpc = t.getEpc().toHexString();
 				String tid = t.getTid().toHexString();
 
 				try {
-					opSecID = opSecID + 1;
+					
 					TagOperation tagOp = this.tunnelService.getTagByTid(tid);
 					if (confTunnel.getAntenna1Enable() && (tagOp == null || !tagOp.getUnlocked())) {
+						seqOp = seqOp + 1;
 						unlockRequest(tagOp, tid, currentEpc, t.getAntennaPortNumber());
-					} else if (confTunnel.getAntenna1Enable() && tagOp.getUnlocked() && (StringUtils.isEmpty(tagOp.getEpcNew()) || !tagOp.getEpcWrited().booleanValue())) {
+					} else if (confTunnel.getAntenna2Enable() && tagOp.getUnlocked() && (StringUtils.isEmpty(tagOp.getEpcNew()) || !tagOp.getEpcWrited().booleanValue())) {
+						seqOp = seqOp + 1;
 						String newEpc = infoGenerator.getInfo().createNewEpc(currentEpc);
 						writeRequest(tagOp, currentEpc, newEpc, t.getAntennaPortNumber(), t.getAntennaPortNumber());
-					} else if (confTunnel.getAntenna1Enable() && tagOp.getUnlocked() && !StringUtils.isEmpty(tagOp.getEpcNew()) && tagOp.getEpcWrited().booleanValue()) {
+					} else if (confTunnel.getAntenna3Enable() && tagOp.getUnlocked() && !StringUtils.isEmpty(tagOp.getEpcNew()) && tagOp.getEpcWrited().booleanValue()) {
+						seqOp = seqOp + 1;
 						lockRequest(tagOp, currentEpc, t.getAntennaPortNumber());
 					}
 					//
 				} catch (Exception e) {
-					logger.error("onTagReported: Failed To program EPC: " + e.toString());
+					logger.error("onTagReported: Failed LOCK EPC " + e.toString());
 				}
 			}
 
@@ -329,9 +323,8 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 		}
 	}
 
-	private TagOpSequence unlockTag(TagOpSequence seq, String currentEpc, String password) throws Exception {
+	private TagOpSequence unlockTag(TagOpSequence seq, String currentEpc) throws Exception {
 		//
-		logger.debug("unlockTag:");
 		logger.debug("unlockTag: EPC " + currentEpc);
 		// Effettuo questa operazione solo alla currentTag
 		seq.setTargetTag(new TargetTag());
@@ -342,7 +335,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 		TagLockOp lockOp = new TagLockOp();
 		// lock the access password so it can't be changed
 		// since we have a password set, we have to use it
-		lockOp.setAccessPassword(TagData.fromHexString(password));
+		lockOp.setAccessPassword(TagData.fromHexString(infoGenerator.getInfo().createPasswordUnlock(currentEpc)));
 		lockOp.setAccessPasswordLockType(TagLockState.Unlock);
 		// uncomment to lock user memory so it can't be changed
 		lockOp.Id = UNLOCK_EPC_OP_ID;
@@ -353,8 +346,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 		return seq;
 	}
 
-	private TagOpSequence lockTag(TagOpSequence seq, String currentEpc, String password) throws Exception {
-		logger.debug("lockTag:");
+	private TagOpSequence lockTag(TagOpSequence seq, String currentEpc) throws Exception {
 		logger.debug("lockTag: EPC " + currentEpc);
 		//
 		// Effettuo questa operazione solo alla currentTag
@@ -365,7 +357,7 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 		TagLockOp lockOp = new TagLockOp();
 		// lock the access password so it can't be changed
 		// since we have a password set, we have to use it
-		lockOp.setAccessPassword(TagData.fromHexString(password));
+		lockOp.setAccessPassword(TagData.fromHexString(infoGenerator.getInfo().createPasswordUnlock(currentEpc)));
 		// lockOp.setAccessPasswordLockType(TagLockState.Lock);
 		lockOp.Id = LOCK_EPC_OP_ID;
 		// uncomment to lock user memory so it can't be changed
@@ -434,8 +426,6 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 				tagOp.setUnlocked(false);
 				tagOp.setEpcWrited(false);
 				tagOp.setNumAntenna(antenna);
-				tagOp.setIdOperation(UNLOCK_EPC_OP_ID);
-				tagOp.setSeqOperation(opSecID);
 				this.tunnelService.save(tagOp);
 			}
 			// if not unlocked request unlocked op for it
@@ -444,8 +434,8 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 			seq1.setOps(new ArrayList<TagOp>());
 			seq1.setExecutionCount((short) 1); // forever
 			seq1.setState(SequenceState.Active);
-			seq1.setId(opSecID);
-			seq1 = unlockTag(seq1, currentEpc, infoGenerator.getInfo().createPasswordUnlock(currentEpc));
+			seq1.setId(seqOp);
+			seq1 = unlockTag(seq1, currentEpc);
 			reader.addOpSequence(seq1);
 
 		} catch (Exception e) {
@@ -457,15 +447,14 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 		try {
 			tagOp.setEpcNew(newEpc);
 			tagOp.setNumAntenna(antenna);
-			tagOp.setIdOperation(WRITE_EPC_OP_ID);
-			tagOp.setSeqOperation(opSecID);
+			tagOp.setSeqOperation(seqOp);
 			this.tunnelService.save(tagOp);
 			//
 			TagOpSequence seq = new TagOpSequence();
 			seq.setOps(new ArrayList<TagOp>());
 			seq.setExecutionCount((short) 1); // forever
 			seq.setState(SequenceState.Active);
-			seq.setId(opSecID);
+			seq.setId(seqOp);
 			seq = programEpc(seq, currentEpc, pc, newEpc);
 			reader.addOpSequence(seq);
 
@@ -477,16 +466,15 @@ public class WriteEpc implements TagReportListener, TagOpCompleteListener {
 	private void lockRequest(TagOperation tagOp, String currentEpc, int antenna) throws Exception {
 		//
 		tagOp.setNumAntenna(antenna);
-		tagOp.setIdOperation(LOCK_EPC_OP_ID);
-		tagOp.setSeqOperation(opSecID);
+		tagOp.setSeqOperation(seqOp);
 		this.tunnelService.save(tagOp);
 		//
 		TagOpSequence seq2 = new TagOpSequence();
 		seq2.setOps(new ArrayList<TagOp>());
 		seq2.setExecutionCount((short) 1); // forever
 		seq2.setState(SequenceState.Active);
-		seq2.setId(opSecID++);
-		seq2 = lockTag(seq2, currentEpc, infoGenerator.getInfo().createPasswordlock(currentEpc));
+		seq2.setId(seqOp);
+		seq2 = lockTag(seq2, currentEpc);
 		reader.addOpSequence(seq2);
 		//
 
